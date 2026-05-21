@@ -6,7 +6,7 @@ echo "=== Arresto del container esistente ==="
 docker compose down
 
 echo "=== Ricostruzione dell'immagine Docker ==="
-docker compose build --no-cache
+docker compose build
 
 echo "=== Avvio del nuovo container in background ==="
 docker compose up -d
