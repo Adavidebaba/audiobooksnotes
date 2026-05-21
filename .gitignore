@@ -1,0 +1,21 @@
+# Environment variables and secrets
+.env
+
+# Application data
+data/
+
+# Python cache and files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ipynb_checkpoints/
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

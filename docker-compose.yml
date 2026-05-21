@@ -1,0 +1,11 @@
+services:
+  audiobooknotes:
+    build: .
+    container_name: audiobooknotes
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
