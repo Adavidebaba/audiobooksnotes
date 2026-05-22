@@ -179,8 +179,8 @@ class StoreManager:
             except (json.JSONDecodeError, IOError) as e:
                 print(f"Errore durante la lettura del file {file_path.name}: {e}")
                 
-        # Sort quotes by createdAt in descending order (newest first)
-        all_quotes.sort(key=lambda x: x.get("createdAt", 0), reverse=True)
+        # Sort quotes by audio position (time) in ascending order
+        all_quotes.sort(key=lambda x: x.get("time", 0))
         return all_quotes
 
     def update_quote(

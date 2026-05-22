@@ -130,9 +130,28 @@ function renderQuotes() {
     return;
   }
   
-  quotesContainer.innerHTML = '';
+  // Group quotes by libraryItemId preserving backend sort (time asc)
+  const bookGroups = new Map();
   filtered.forEach(quote => {
-    quotesContainer.appendChild(QuotesUiManager.createQuoteCard(quote));
+    const bookId = quote.libraryItemId;
+    if (!bookGroups.has(bookId)) {
+      bookGroups.set(bookId, {
+        title: quote.bookTitle,
+        author: quote.bookAuthor,
+        quotes: []
+      });
+    }
+    bookGroups.get(bookId).quotes.push(quote);
+  });
+  
+  quotesContainer.innerHTML = '';
+  bookGroups.forEach((bookGroup) => {
+    const section = QuotesUiManager.createBookSection(
+      bookGroup.title,
+      bookGroup.author,
+      bookGroup.quotes
+    );
+    quotesContainer.appendChild(section);
   });
 }
 
@@ -254,6 +273,33 @@ window.toggleDetails = function(libraryItemId, createdAt, btn) {
   } else {
     details.classList.add('expanded');
     btn.textContent = 'Riduci dettagli';
+  }
+};
+
+window.toggleEditMode = function(libraryItemId, createdAt, btn) {
+  const readView = document.getElementById(`read-view-${libraryItemId}-${createdAt}`);
+  const editView = document.getElementById(`edit-view-${libraryItemId}-${createdAt}`);
+  const card = document.getElementById(`quote-card-${libraryItemId}-${createdAt}`);
+  
+  const isEditing = card.classList.contains('editing');
+  
+  if (isEditing) {
+    // Exit edit mode: update blockquote text from textarea
+    const textarea = document.getElementById(`quote-val-${libraryItemId}-${createdAt}`);
+    const blockquote = readView.querySelector('.quote-blockquote');
+    blockquote.textContent = textarea.value;
+    card.classList.remove('editing');
+    btn.textContent = '✏️';
+    btn.title = 'Modifica citazione';
+  } else {
+    // Enter edit mode: sync textarea from blockquote
+    const blockquote = readView.querySelector('.quote-blockquote');
+    const textarea = document.getElementById(`quote-val-${libraryItemId}-${createdAt}`);
+    textarea.value = blockquote.textContent;
+    card.classList.add('editing');
+    btn.textContent = '✕';
+    btn.title = 'Chiudi modifica';
+    textarea.focus();
   }
 };
 

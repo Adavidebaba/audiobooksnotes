@@ -1,0 +1,472 @@
+/* ═══════════════════════════════════════════════════ */
+/*  Quote Card — Read/Edit dual mode                   */
+/* ═══════════════════════════════════════════════════ */
+.quote-card {
+  background: var(--glass-bg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  padding: 1.25rem 1.75rem;
+  transition: var(--transition-smooth);
+  position: relative;
+}
+
+.quote-card:last-child {
+  border-bottom: none;
+}
+
+.quote-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--accent-purple), var(--accent-blue));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.quote-card:hover::before {
+  opacity: 1;
+}
+
+/* Card Header (Position + Badge + Edit toggle) */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.card-position {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.position-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  background: rgba(6, 182, 212, 0.08);
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(6, 182, 212, 0.15);
+  letter-spacing: 0.01em;
+}
+
+/* Edit toggle button (pencil / close) */
+.btn-edit-toggle {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  transition: var(--transition-smooth);
+  opacity: 0;
+  line-height: 1;
+}
+
+.quote-card:hover .btn-edit-toggle {
+  opacity: 1;
+}
+
+.quote-card.editing .btn-edit-toggle {
+  opacity: 1;
+  color: var(--accent-danger);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.btn-edit-toggle:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
+/* ── READ MODE ── */
+.quote-read-view {
+  display: block;
+}
+
+.quote-card.editing .quote-read-view {
+  display: none;
+}
+
+.quote-blockquote {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--text-main);
+  padding: 0.5rem 0 0.5rem 1.25rem;
+  border-left: 3px solid rgba(139, 92, 246, 0.3);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── EDIT MODE ── */
+.quote-edit-view {
+  display: none;
+}
+
+.quote-card.editing .quote-edit-view {
+  display: block;
+}
+
+/* Details footer inside expandable area */
+.details-footer {
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.05);
+  padding-top: 1rem;
+}
+
+.details-footer .quote-date {
+  align-self: center;
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.quote-date {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  Badges                                             */
+/* ═══════════════════════════════════════════════════ */
+.badge {
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.badge-high {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--accent-success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.badge-medium {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--accent-warning);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.badge-low {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  Edit Mode Controls                                 */
+/* ═══════════════════════════════════════════════════ */
+.quote-textarea {
+  width: 100%;
+  background: rgba(10, 12, 22, 0.5);
+  border: 1px dashed var(--glass-border);
+  color: #fff;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  resize: vertical;
+  min-height: 90px;
+  font-family: var(--font-family);
+  transition: var(--transition-smooth);
+  margin-bottom: 0.5rem;
+}
+
+.quote-textarea:focus {
+  border-style: solid;
+  border-color: var(--accent-purple);
+  background: rgba(10, 12, 22, 0.8);
+  outline: none;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.left-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.confidence-selector {
+  background: rgba(10, 12, 22, 0.8);
+  border: 1px solid var(--glass-border);
+  color: var(--text-main);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: var(--font-family);
+  outline: none;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.confidence-selector:focus {
+  border-color: var(--accent-purple);
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  Buttons                                            */
+/* ═══════════════════════════════════════════════════ */
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: var(--transition-smooth);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.35);
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.btn-danger:hover {
+  background: var(--accent-danger);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid var(--glass-border);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  Expandable Details                                 */
+/* ═══════════════════════════════════════════════════ */
+.expandable-details {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.expandable-details.expanded {
+  max-height: 1000px;
+  margin-top: 1.25rem;
+  opacity: 1;
+  pointer-events: all;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .details-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.detail-block {
+  background: rgba(10, 12, 22, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.detail-block h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-cyan);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detail-block p {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  Modal, Toast, Empty State                          */
+/* ═══════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(5, 6, 10, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: var(--transition-smooth);
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border-hover);
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  transform: scale(0.9);
+  transition: var(--transition-smooth);
+  text-align: center;
+}
+
+.modal-overlay.active .modal-content {
+  transform: scale(1);
+}
+
+.modal-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.modal-body {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--glass-bg);
+  border: 1px dashed var(--glass-border);
+  border-radius: 16px;
+  color: var(--text-muted);
+}
+
+.empty-state h3 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: linear-gradient(135deg, var(--accent-success), #059669);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+  z-index: 1100;
+  transform: translateY(150%);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toast.active {
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  Responsive                                         */
+/* ═══════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .book-section-header {
+    padding: 1.25rem 1.25rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .book-section-title {
+    font-size: 1.25rem;
+  }
+
+  .quote-card {
+    padding: 1rem 1.25rem;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .card-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .left-actions {
+    flex-wrap: wrap;
+  }
+}
