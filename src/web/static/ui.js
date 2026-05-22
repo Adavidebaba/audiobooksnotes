@@ -120,12 +120,12 @@ export class QuotesUiManager {
           <span class="position-marker">⏱️ ${this.formatTimeLabel(quote.time)}</span>
           <span class="badge ${badgeClass}" id="badge-val-${quote.libraryItemId}-${quote.createdAt}">${quote.quote_confidence}</span>
         </div>
-        <button class="btn-edit-toggle" onclick="toggleEditMode('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Modifica citazione">
-          ✏️
+        <button class="btn-edit-toggle" onclick="toggleEditMode('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Verifica o modifica questa citazione">
+          ✏️ Verifica
         </button>
       </div>
       
-      <!-- READ MODE: beautiful readable text -->
+      <!-- READ MODE: readable text -->
       <div class="quote-read-view" id="read-view-${quote.libraryItemId}-${quote.createdAt}">
         <blockquote class="quote-blockquote">${quoteText}</blockquote>
       </div>
@@ -145,10 +145,6 @@ export class QuotesUiManager {
             <button class="btn btn-primary" onclick="saveQuoteUpdate('${quote.libraryItemId}', ${quote.createdAt})">
               💾 Salva
             </button>
-            
-            <button class="btn btn-secondary" onclick="toggleDetails('${quote.libraryItemId}', ${quote.createdAt}, this)">
-              Espandi dettagli
-            </button>
           </div>
           
           <button class="btn btn-danger" onclick="confirmDeleteQuote('${quote.libraryItemId}', ${quote.createdAt})">
@@ -156,25 +152,23 @@ export class QuotesUiManager {
           </button>
         </div>
         
-        <div class="expandable-details" id="details-${quote.libraryItemId}-${quote.createdAt}">
-          <div class="details-grid">
-            <div class="detail-block">
-              <h4>Trascrizione Originale</h4>
-              <p>${this.escapeHtml(quote.transcript || 'Nessuna trascrizione estratta.')}</p>
-            </div>
-            <div class="detail-block">
-              <h4>Ragionamento Estrattivo LLM</h4>
-              <p>${this.escapeHtml(quote.quote_reasoning || 'Nessun ragionamento fornito.')}</p>
-            </div>
+        <div class="details-grid" style="margin-top: 1.25rem;">
+          <div class="detail-block">
+            <h4>Trascrizione Originale</h4>
+            <p>${this.escapeHtml(quote.transcript || 'Nessuna trascrizione estratta.')}</p>
           </div>
-          <div class="details-footer">
-            <span class="quote-date" title="Porzione audio estratta">
-              ⏱️ Finestra: -${quote.audio_window ? quote.audio_window.pre : 30}s / +${quote.audio_window ? quote.audio_window.post : 30}s
-            </span>
-            <button class="btn btn-secondary" onclick="reprocessSingleQuote('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Riprova ad estrarre la citazione allungando la finestra audio di circa il 20%">
-              🔄 Ripeti Estrazione (+20% Audio)
-            </button>
+          <div class="detail-block">
+            <h4>Ragionamento Estrattivo LLM</h4>
+            <p>${this.escapeHtml(quote.quote_reasoning || 'Nessun ragionamento fornito.')}</p>
           </div>
+        </div>
+        <div class="details-footer">
+          <span class="quote-date" title="Porzione audio estratta">
+            ⏱️ Finestra: -${quote.audio_window ? quote.audio_window.pre : 30}s / +${quote.audio_window ? quote.audio_window.post : 30}s
+          </span>
+          <button class="btn btn-secondary" onclick="reprocessSingleQuote('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Riprova ad estrarre la citazione allungando la finestra audio di circa il 20%">
+            🔄 Ripeti Estrazione (+20% Audio)
+          </button>
         </div>
       </div>
     `;

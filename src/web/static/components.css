@@ -58,33 +58,35 @@
   letter-spacing: 0.01em;
 }
 
-/* Edit toggle button (pencil / close) */
+/* Edit toggle button (Verifica / Chiudi) */
 .btn-edit-toggle {
-  background: none;
-  border: 1px solid transparent;
+  background: transparent;
+  border: none;
   color: var(--text-dim);
-  font-size: 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
   cursor: pointer;
-  padding: 0.3rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
   border-radius: 6px;
-  transition: var(--transition-smooth);
-  opacity: 0;
-  line-height: 1;
-}
-
-.quote-card:hover .btn-edit-toggle {
-  opacity: 1;
-}
-
-.quote-card.editing .btn-edit-toggle {
-  opacity: 1;
-  color: var(--accent-danger);
-  border-color: rgba(239, 68, 68, 0.2);
+  transition: all 0.2s ease;
+  outline: none;
 }
 
 .btn-edit-toggle:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-main);
+  color: var(--accent-purple);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.quote-card.editing .btn-edit-toggle {
+  color: var(--accent-danger);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.quote-card.editing .btn-edit-toggle:hover {
+  background: rgba(239, 68, 68, 0.15);
 }
 
 /* ── READ MODE ── */
@@ -97,6 +99,7 @@
 }
 
 .quote-blockquote {
+  font-style: normal;
   font-size: 1.05rem;
   line-height: 1.7;
   color: var(--text-main);

@@ -289,15 +289,15 @@ window.toggleEditMode = function(libraryItemId, createdAt, btn) {
     const blockquote = readView.querySelector('.quote-blockquote');
     blockquote.textContent = textarea.value;
     card.classList.remove('editing');
-    btn.textContent = '✏️';
-    btn.title = 'Modifica citazione';
+    btn.innerHTML = '✏️ Verifica';
+    btn.title = 'Verifica o modifica questa citazione';
   } else {
     // Enter edit mode: sync textarea from blockquote
     const blockquote = readView.querySelector('.quote-blockquote');
     const textarea = document.getElementById(`quote-val-${libraryItemId}-${createdAt}`);
     textarea.value = blockquote.textContent;
     card.classList.add('editing');
-    btn.textContent = '✕';
+    btn.innerHTML = '✕ Chiudi';
     btn.title = 'Chiudi modifica';
     textarea.focus();
   }
