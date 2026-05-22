@@ -50,11 +50,12 @@ class StateManager:
         self, 
         current_bookmarks: List[Dict[str, Any]], 
         bootstrap_mode: str, 
-        bootstrap_since_iso: str = ""
+        bootstrap_since_iso: str = "",
+        ignore_bootstrap: bool = False
     ) -> List[Dict[str, Any]]:
         """Compares list of bookmarks from ABS with local state and returns bookmarks to process."""
         unprocessed = []
-        is_first_run = len(self.state.get("bookmarks", {})) == 0
+        is_first_run = len(self.state.get("bookmarks", {})) == 0 and not ignore_bootstrap
 
         # Parse bootstrap date if in 'since' mode
         since_ms = 0
@@ -118,3 +119,8 @@ class StateManager:
             entry["error"] = error_msg
 
         self.state["bookmarks"][key] = entry
+
+    def clear_state(self) -> None:
+        """Clears all historical records in the state and saves it."""
+        self.state = {"version": 1, "bookmarks": {}}
+        self.save_state()
