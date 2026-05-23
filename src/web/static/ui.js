@@ -82,11 +82,19 @@ export class QuotesUiManager {
         <h2 class="book-section-title">${this.escapeHtml(bookTitle)}</h2>
         <p class="book-section-author">${this.escapeHtml(bookAuthor)}</p>
       </div>
-      <div class="book-section-stats">
-        <span class="stat-pill">${quotes.length} citazion${quotes.length === 1 ? 'e' : 'i'}</span>
-        ${highCount > 0 ? `<span class="stat-pill stat-high">${highCount} high</span>` : ''}
-        ${mediumCount > 0 ? `<span class="stat-pill stat-medium">${mediumCount} medium</span>` : ''}
-        ${lowCount > 0 ? `<span class="stat-pill stat-low">${lowCount} low</span>` : ''}
+      <div class="book-section-actions">
+        <button class="btn-download-book" onclick="downloadBookQuotes('${quotes[0].libraryItemId}')" title="Download quotes in JSON format">
+          📥 Scarica JSON
+        </button>
+        <button class="btn-download-book btn-download-readwise" onclick="downloadBookReadwiseCsv('${quotes[0].libraryItemId}')" title="Download quotes in Readwise CSV format">
+          📥 Scarica CSV Readwise
+        </button>
+        <div class="book-section-stats">
+          <span class="stat-pill">${quotes.length} ${quotes.length === 1 ? 'quote' : 'quotes'}</span>
+          ${highCount > 0 ? `<span class="stat-pill stat-high">${highCount} high</span>` : ''}
+          ${mediumCount > 0 ? `<span class="stat-pill stat-medium">${mediumCount} medium</span>` : ''}
+          ${lowCount > 0 ? `<span class="stat-pill stat-low">${lowCount} low</span>` : ''}
+        </div>
       </div>
     `;
     section.appendChild(header);
@@ -120,8 +128,8 @@ export class QuotesUiManager {
           <span class="position-marker">⏱️ ${this.formatTimeLabel(quote.time)}</span>
           <span class="badge ${badgeClass}" id="badge-val-${quote.libraryItemId}-${quote.createdAt}">${quote.quote_confidence}</span>
         </div>
-        <button class="btn-edit-toggle" onclick="toggleEditMode('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Verifica o modifica questa citazione">
-          ✏️ Verifica
+        <button class="btn-edit-toggle" onclick="toggleEditMode('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Verify or edit this quote">
+          ✏️ Verify
         </button>
       </div>
       
@@ -132,42 +140,42 @@ export class QuotesUiManager {
       
       <!-- EDIT MODE: hidden by default -->
       <div class="quote-edit-view" id="edit-view-${quote.libraryItemId}-${quote.createdAt}">
-        <textarea class="quote-textarea" id="quote-val-${quote.libraryItemId}-${quote.createdAt}" aria-label="Testo della citazione">${quoteText}</textarea>
+        <textarea class="quote-textarea" id="quote-val-${quote.libraryItemId}-${quote.createdAt}" aria-label="Quote text">${quoteText}</textarea>
         
         <div class="card-actions">
           <div class="left-actions">
-            <select class="confidence-selector" id="select-val-${quote.libraryItemId}-${quote.createdAt}" aria-label="Modifica confidence">
+            <select class="confidence-selector" id="select-val-${quote.libraryItemId}-${quote.createdAt}" aria-label="Edit confidence">
               <option value="high" ${quote.quote_confidence === 'high' ? 'selected' : ''}>High</option>
               <option value="medium" ${quote.quote_confidence === 'medium' ? 'selected' : ''}>Medium</option>
               <option value="low" ${quote.quote_confidence === 'low' ? 'selected' : ''}>Low</option>
             </select>
             
             <button class="btn btn-primary" onclick="saveQuoteUpdate('${quote.libraryItemId}', ${quote.createdAt})">
-              💾 Salva
+              💾 Save
             </button>
           </div>
           
           <button class="btn btn-danger" onclick="confirmDeleteQuote('${quote.libraryItemId}', ${quote.createdAt})">
-            Elimina
+            Delete
           </button>
         </div>
         
         <div class="details-grid" style="margin-top: 1.25rem;">
           <div class="detail-block">
-            <h4>Trascrizione Originale</h4>
-            <p>${this.escapeHtml(quote.transcript || 'Nessuna trascrizione estratta.')}</p>
+            <h4>Original Transcription</h4>
+            <p>${this.escapeHtml(quote.transcript || 'No transcription extracted.')}</p>
           </div>
           <div class="detail-block">
-            <h4>Ragionamento Estrattivo LLM</h4>
-            <p>${this.escapeHtml(quote.quote_reasoning || 'Nessun ragionamento fornito.')}</p>
+            <h4>LLM Extraction Reasoning</h4>
+            <p>${this.escapeHtml(quote.quote_reasoning || 'No reasoning provided.')}</p>
           </div>
         </div>
         <div class="details-footer">
-          <span class="quote-date" title="Porzione audio estratta">
-            ⏱️ Finestra: -${quote.audio_window ? quote.audio_window.pre : 30}s / +${quote.audio_window ? quote.audio_window.post : 30}s
+          <span class="quote-date" title="Extracted audio portion">
+            ⏱️ Window: -${quote.audio_window ? quote.audio_window.pre : 30}s / +${quote.audio_window ? quote.audio_window.post : 30}s
           </span>
-          <button class="btn btn-secondary" onclick="reprocessSingleQuote('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Riprova ad estrarre la citazione allungando la finestra audio di circa il 20%">
-            🔄 Ripeti Estrazione (+20% Audio)
+          <button class="btn btn-secondary" onclick="reprocessSingleQuote('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Try to re-extract the quote by expanding the audio window by 20%">
+            🔄 Reprocess (+20% Audio)
           </button>
         </div>
       </div>

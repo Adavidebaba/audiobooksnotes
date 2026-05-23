@@ -15,11 +15,9 @@ const filterBookSelect = document.getElementById('filter-book');
 const filterConfidenceSelect = document.getElementById('filter-confidence');
 const filterDateStart = document.getElementById('filter-date-start');
 const filterDateEnd = document.getElementById('filter-date-end');
-const btnDownloadJson = document.getElementById('btn-download-json');
 const deleteModal = document.getElementById('delete-modal');
 const btnCancelDelete = document.getElementById('modal-btn-cancel');
 const btnConfirmDelete = document.getElementById('modal-btn-confirm');
-const btnReprocess = document.getElementById('btn-reprocess');
 const toastNotification = document.getElementById('toast');
 
 /**
@@ -35,19 +33,14 @@ async function initApp() {
  */
 function bindEventListeners() {
   if (filterBookSelect) {
-    filterBookSelect.addEventListener('change', () => {
-      toggleDownloadButtonVisibility();
-      renderQuotes();
-    });
+    filterBookSelect.addEventListener('change', renderQuotes);
   }
   if (filterConfidenceSelect) filterConfidenceSelect.addEventListener('change', renderQuotes);
   if (filterDateStart) filterDateStart.addEventListener('change', renderQuotes);
   if (filterDateEnd) filterDateEnd.addEventListener('change', renderQuotes);
-  if (btnDownloadJson) btnDownloadJson.addEventListener('click', downloadSelectedBookQuotes);
   
   if (btnCancelDelete) btnCancelDelete.addEventListener('click', closeDeleteModal);
   if (btnConfirmDelete) btnConfirmDelete.addEventListener('click', executeDeleteQuote);
-  if (btnReprocess) btnReprocess.addEventListener('click', handleDatabaseReprocess);
   
   if (deleteModal) {
     deleteModal.addEventListener('click', (e) => {
@@ -65,10 +58,10 @@ async function loadQuotesFromServer() {
     populateBookFilter();
     renderQuotes();
   } catch (error) {
-    showToast(`Errore: ${error.message}`, 'danger');
+    showToast(`Error: ${error.message}`, 'danger');
     quotesContainer.innerHTML = `
       <div class="empty-state">
-        <h3 style="color: var(--accent-danger)">Errore di Caricamento</h3>
+        <h3 style="color: var(--accent-danger)">Loading Error</h3>
         <p>${error.message}</p>
       </div>
     `;
@@ -84,7 +77,7 @@ function populateBookFilter() {
     booksMap.set(quote.libraryItemId, quote.bookTitle);
   });
   
-  filterBookSelect.innerHTML = '<option value="all">Tutti i libri</option>';
+  filterBookSelect.innerHTML = '<option value="all">All books</option>';
   booksMap.forEach((title, id) => {
     const option = document.createElement('option');
     option.value = id;
@@ -123,8 +116,8 @@ function renderQuotes() {
   if (filtered.length === 0) {
     quotesContainer.innerHTML = `
       <div class="empty-state">
-        <h3>Nessuna citazione trovata</h3>
-        <p>Prova a modificare i filtri inseriti.</p>
+        <h3>No quotes found</h3>
+        <p>Try adjusting the active filters.</p>
       </div>
     `;
     return;
@@ -176,39 +169,28 @@ function showToast(message, type = 'success') {
 }
 
 /**
- * Shows or hides the download button based on selection.
+ * Filters the active book quotes by libraryItemId, maps them, and triggers download.
  */
-function toggleDownloadButtonVisibility() {
-  const selectedBook = filterBookSelect.value;
-  btnDownloadJson.style.display = selectedBook !== 'all' ? 'inline-flex' : 'none';
-}
-
-/**
- * Filters the active book quotes, maps them to quote + mm:ss position, and triggers download with check.
- */
-function downloadSelectedBookQuotes() {
-  const selectedBookId = filterBookSelect.value;
-  if (selectedBookId === 'all') return;
-  
-  const bookQuotes = quotesState.filter(q => q.libraryItemId === selectedBookId);
+window.downloadBookQuotes = function(libraryItemId) {
+  const bookQuotes = quotesState.filter(q => q.libraryItemId === libraryItemId);
   if (bookQuotes.length === 0) {
-    showToast('Nessuna citazione disponibile per questo libro.', 'danger');
+    showToast('No quotes available for this book.', 'danger');
     return;
   }
   
-  // 2. Controllo: se ci sono citazioni con voto diverso da "High"
+  // Safety check: if there are quotes with confidence below "High"
   const nonHighQuotes = bookQuotes.filter(q => q.quote_confidence.toLowerCase() !== 'high');
   if (nonHighQuotes.length > 0) {
-    const confirmDownload = confirm(`⚠️ ATTENZIONE: Ci sono ${nonHighQuotes.length} citazioni con voto inferiore a "High" (Medium o Low).\n\nSi raccomanda vivamente di controllarle e correggerle prima di scaricare il file.\n\nVuoi procedere comunque con il download?`);
+    const confirmDownload = confirm(`⚠️ WARNING: There are ${nonHighQuotes.length} quotes with confidence level below "High" (Medium or Low).\n\nIt is strongly recommended to verify and correct them before downloading.\n\nDo you want to proceed anyway?`);
     if (!confirmDownload) return;
   }
   
-  const bookTitle = bookQuotes[0].bookTitle || 'Libro';
-  const bookAuthor = bookQuotes[0].bookAuthor || 'Autore';
+  const bookTitle = bookQuotes[0].bookTitle || 'Book';
+  const bookAuthor = bookQuotes[0].bookAuthor || 'Author';
   
   const downloadData = bookQuotes.map(q => ({
-    citazione: q.quote || '',
-    posizione: QuotesUiManager.formatTime(q.time)
+    quote: q.quote || '',
+    position: QuotesUiManager.formatTime(q.time)
   }));
   
   const jsonString = JSON.stringify(downloadData, null, 2);
@@ -222,58 +204,82 @@ function downloadSelectedBookQuotes() {
   link.click();
   document.body.removeChild(link);
   
-  showToast('Download del file JSON avviato!', 'success');
+  showToast('JSON file download started!', 'success');
+};
+
+/**
+ * Helper to escape quotes, commas, and newlines for robust RFC 4180 CSV compliance.
+ */
+function escapeCsvField(field) {
+  if (field === null || field === undefined) return '';
+  const stringVal = String(field);
+  if (stringVal.includes('"') || stringVal.includes(',') || stringVal.includes('\n') || stringVal.includes('\r')) {
+    return `"${stringVal.replace(/"/g, '""')}"`;
+  }
+  return stringVal;
 }
 
 /**
- * Triggers database reprocess after double safety confirmation.
+ * Helper to format timestamp to UTC YYYY-MM-DD HH:mm:ss for Readwise compatibility.
  */
-async function handleDatabaseReprocess() {
-  const confirm1 = confirm("⚠️ ATTENZIONE: Questa operazione cancellerà TUTTE le citazioni correnti in locale e le rielaborerà da zero leggendole nuovamente da Audiobookshelf.\n\nVuoi procedere?");
-  if (!confirm1) return;
-  
-  const confirm2 = confirm("🔥 CONFERMA DI SICUREZZA: L'operazione richiederà tempo e consumerà crediti API per ri-trascrivere e ri-analizzare con l'AI tutti i bookmark. Sei ASSOLUTAMENTE sicuro di voler procedere?");
-  if (!confirm2) return;
-  
-  try {
-    quotesContainer.innerHTML = `
-      <div class="empty-state">
-        <h3>Rigenerazione del database avviata...</h3>
-        <p>Il server sta riprocessando tutti i bookmark da Audiobookshelf in background. I dati riappariranno gradualmente.</p>
-      </div>
-    `;
-    
-    await QuotesApiManager.triggerDatabaseReprocess();
-    showToast("Rigenerazione avviata con successo!", "success");
-    
-    quotesState = [];
-    let pollCount = 0;
-    const intervalId = setInterval(async () => {
-      await loadQuotesFromServer();
-      pollCount++;
-      if (quotesState.length > 0 && pollCount > 2) {
-        clearInterval(intervalId);
-      }
-      if (pollCount > 24) clearInterval(intervalId);
-    }, 5000);
-    
-  } catch (error) {
-    showToast(`Errore: ${error.message}`, "danger");
-    await loadQuotesFromServer();
-  }
+function formatCsvDate(timestamp) {
+  const d = new Date(timestamp);
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  const hour = String(d.getUTCHours()).padStart(2, '0');
+  const minute = String(d.getUTCMinutes()).padStart(2, '0');
+  const second = String(d.getUTCSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
 }
 
-// Window Globals for Inline DOM click events
-
-window.toggleDetails = function(libraryItemId, createdAt, btn) {
-  const details = document.getElementById(`details-${libraryItemId}-${createdAt}`);
-  if (details.classList.contains('expanded')) {
-    details.classList.remove('expanded');
-    btn.textContent = 'Espandi dettagli';
-  } else {
-    details.classList.add('expanded');
-    btn.textContent = 'Riduci dettagli';
+/**
+ * Filters the active book quotes by libraryItemId and exports them as a Readwise-compliant CSV file.
+ */
+window.downloadBookReadwiseCsv = function(libraryItemId) {
+  const bookQuotes = quotesState.filter(q => q.libraryItemId === libraryItemId);
+  if (bookQuotes.length === 0) {
+    showToast('No quotes available for this book.', 'danger');
+    return;
   }
+  
+  // Safety check: if there are quotes with confidence below "High"
+  const nonHighQuotes = bookQuotes.filter(q => q.quote_confidence.toLowerCase() !== 'high');
+  if (nonHighQuotes.length > 0) {
+    const confirmDownload = confirm(`⚠️ WARNING: There are ${nonHighQuotes.length} quotes with confidence level below "High" (Medium or Low).\n\nIt is strongly recommended to verify and correct them before importing to Readwise.\n\nDo you want to proceed anyway?`);
+    if (!confirmDownload) return;
+  }
+  
+  const bookTitle = bookQuotes[0].bookTitle || 'Book';
+  const bookAuthor = bookQuotes[0].bookAuthor || 'Author';
+  
+  const headers = ['Highlight', 'Title', 'Author', 'URL', 'Note', 'Location', '"Date"'];
+  const rows = bookQuotes.map(q => [
+    escapeCsvField(q.quote || ''),
+    escapeCsvField(q.bookTitle || ''),
+    escapeCsvField(q.bookAuthor || ''),
+    '""', // URL always empty
+    '""', // Note always empty
+    Math.floor(q.time || 0),
+    `"${formatCsvDate(q.createdAt || Date.now())}"`
+  ]);
+  
+  const csvContent = '\ufeff' + [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n');
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const safeFilename = `${bookTitle} - ${bookAuthor} - Readwise`.replace(/[\\/:*?"<>|]/g, '_');
+  
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute('download', `${safeFilename}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showToast('Readwise CSV download started!', 'success');
 };
 
 window.toggleEditMode = function(libraryItemId, createdAt, btn) {
@@ -289,16 +295,16 @@ window.toggleEditMode = function(libraryItemId, createdAt, btn) {
     const blockquote = readView.querySelector('.quote-blockquote');
     blockquote.textContent = textarea.value;
     card.classList.remove('editing');
-    btn.innerHTML = '✏️ Verifica';
-    btn.title = 'Verifica o modifica questa citazione';
+    btn.innerHTML = '✏️ Verify';
+    btn.title = 'Verify or edit this quote';
   } else {
     // Enter edit mode: sync textarea from blockquote
     const blockquote = readView.querySelector('.quote-blockquote');
     const textarea = document.getElementById(`quote-val-${libraryItemId}-${createdAt}`);
     textarea.value = blockquote.textContent;
     card.classList.add('editing');
-    btn.innerHTML = '✕ Chiudi';
-    btn.title = 'Chiudi modifica';
+    btn.innerHTML = '✕ Close';
+    btn.title = 'Close edit';
     textarea.focus();
   }
 };
@@ -310,7 +316,7 @@ window.saveQuoteUpdate = async function(libraryItemId, createdAt) {
   
   const newQuote = textarea.value.trim();
   
-  // 1. Assegna automaticamente "high" quando l'utente modifica e salva
+  // 1. Automatically assign "high" confidence upon manual verification
   selector.value = 'high';
   const newConfidence = 'high';
   
@@ -326,9 +332,9 @@ window.saveQuoteUpdate = async function(libraryItemId, createdAt) {
     badge.textContent = 'High';
     badge.className = 'badge badge-high';
     
-    showToast('Citazione salvata con successo! Voto impostato ad High.', 'success');
+    showToast('Quote saved successfully! Confidence set to High.', 'success');
   } catch (error) {
-    showToast(`Errore: ${error.message}`, 'danger');
+    showToast(`Error: ${error.message}`, 'danger');
   }
 };
 
@@ -351,9 +357,9 @@ async function executeDeleteQuote() {
     quotesState = quotesState.filter(q => !(q.libraryItemId === libraryItemId && q.createdAt === createdAt));
     closeDeleteModal();
     renderQuotes();
-    showToast('Citazione eliminata con successo!', 'success');
+    showToast('Quote deleted successfully!', 'success');
   } catch (error) {
-    showToast(`Errore: ${error.message}`, 'danger');
+    showToast(`Error: ${error.message}`, 'danger');
     closeDeleteModal();
   }
 }
@@ -362,13 +368,13 @@ window.reprocessSingleQuote = async function(libraryItemId, createdAt, btn) {
   const card = document.getElementById(`quote-card-${libraryItemId}-${createdAt}`);
   if (!card) return;
   
-  const confirmReprocess = confirm("Sei sicuro di voler ri-estrarre questa citazione?\n\nQuesto scaricherà una porzione di audio più ampia del 20% rispetto a quella attuale, rieseguirà Whisper e interrogherà nuovamente l'AI.");
+  const confirmReprocess = confirm("Are you sure you want to re-extract this quote?\n\nThis will download an audio window that is 20% wider than the current one, rerun Whisper, and query the LLM again.");
   if (!confirmReprocess) return;
   
   card.classList.add('card-loading');
   const originalText = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '🔄 Rielaborazione...';
+  btn.innerHTML = '🔄 Reprocessing...';
   
   try {
     const updatedQuote = await QuotesApiManager.reprocessSingleQuote(libraryItemId, createdAt);
@@ -381,16 +387,16 @@ window.reprocessSingleQuote = async function(libraryItemId, createdAt, btn) {
     const newCard = QuotesUiManager.createQuoteCard(updatedQuote);
     card.parentNode.replaceChild(newCard, card);
     
-    const newDetails = document.getElementById(`details-${libraryItemId}-${createdAt}`);
-    const newBtn = newCard.querySelector('.btn-secondary');
-    if (newDetails) {
-      newDetails.classList.add('expanded');
-      if (newBtn) newBtn.textContent = 'Riduci dettagli';
+    // Automatically keep in edit/expanded state to show the updated quote details
+    newCard.classList.add('editing');
+    const newBtn = newCard.querySelector('.btn-edit-toggle');
+    if (newBtn) {
+      newBtn.innerHTML = '✕ Close';
     }
     
-    showToast('Citazione rielaborata e aggiornata con successo!', 'success');
+    showToast('Quote re-extracted and updated successfully!', 'success');
   } catch (error) {
-    showToast(`Errore: ${error.message}`, 'danger');
+    showToast(`Error: ${error.message}`, 'danger');
     card.classList.remove('card-loading');
     btn.disabled = false;
     btn.innerHTML = originalText;

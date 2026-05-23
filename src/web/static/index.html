@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Dashboard interattiva per visualizzare, filtrare, modificare ed eliminare le citazioni estratte dagli audiolibri.">
+  <meta name="description" content="Interactive dashboard to view, filter, edit, and delete quotes extracted from your audiobooks.">
   <title>AudiobookNotes Dashboard</title>
   <link rel="stylesheet" href="style.css?v=2.1.0">
   <link rel="stylesheet" href="components.css?v=2.1.0">
@@ -15,49 +15,46 @@
     <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2.5rem;">
       <div style="text-align: left;">
         <h1 id="main-title" style="margin-bottom: 0.25rem; background: linear-gradient(135deg, #ffffff 30%, #a78bfa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">AudiobookNotes Dashboard</h1>
-        <p id="main-subtitle">Gestisci, correggi e organizza le tue citazioni estrapolate in tempo reale</p>
+        <p id="main-subtitle">Manage, verify, and organize your extracted quotes in real time</p>
       </div>
-      <button id="btn-reprocess" class="btn btn-danger" style="gap: 0.5rem; height: 44px; display: inline-flex; align-items: center;" title="Riprocessa tutti i bookmark da capo">
-        🔄 Rigenera Database
-      </button>
+      <a href="instructions.html" class="btn btn-secondary" style="gap: 0.5rem; height: 44px; display: inline-flex; align-items: center; text-decoration: none;" title="View instructions and documentation">
+        📖 How to Use
+      </a>
     </header>
 
     <!-- Filters Section -->
     <section class="filters-section" aria-labelledby="filters-title">
-      <h2 id="filters-title" style="display:none;">Filtri</h2>
+      <h2 id="filters-title" style="display:none;">Filters</h2>
       <div class="filters-grid">
         <!-- Book Filter -->
         <div class="filter-group">
-          <label for="filter-book">Seleziona Libro</label>
+          <label for="filter-book">Select Book</label>
           <div style="display: flex; gap: 0.5rem; align-items: center; width: 100%;">
             <select id="filter-book" class="filter-control" style="flex: 1;">
-              <option value="all">Tutti i libri</option>
+              <option value="all">All books</option>
               <!-- Dynamic Options -->
             </select>
-            <button id="btn-download-json" class="btn btn-secondary" style="display: none; height: 44px; padding: 0.75rem 1rem; align-items: center; justify-content: center;" title="Scarica citazioni in JSON">
-              📥 Scarica
-            </button>
           </div>
         </div>
 
         <!-- Confidence Score Filter -->
         <div class="filter-group">
-          <label for="filter-confidence">Voto Confidence</label>
+          <label for="filter-confidence">Confidence Level</label>
           <select id="filter-confidence" class="filter-control">
-            <option value="all">Tutti i voti</option>
-            <option value="high">High (Alto)</option>
-            <option value="medium">Medium (Medio)</option>
-            <option value="low">Low (Basso)</option>
+            <option value="all">All levels</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
           </select>
         </div>
 
         <!-- Date Range Filter -->
         <div class="filter-group">
-          <label for="filter-date-start">Intervallo Date</label>
+          <label for="filter-date-start">Date Range</label>
           <div class="date-range-container">
-            <input type="date" id="filter-date-start" class="filter-control" aria-label="Data di inizio">
-            <span>al</span>
-            <input type="date" id="filter-date-end" class="filter-control" aria-label="Data di fine">
+            <input type="date" id="filter-date-start" class="filter-control" aria-label="Start date">
+            <span>to</span>
+            <input type="date" id="filter-date-end" class="filter-control" aria-label="End date">
           </div>
         </div>
       </div>
@@ -68,8 +65,8 @@
       <div id="quotes-container" class="quotes-list">
         <!-- Quotes will be injected here dynamically by JavaScript -->
         <div class="empty-state">
-          <h3>Caricamento delle citazioni...</h3>
-          <p>Attendere il recupero dei dati dal server.</p>
+          <h3>Loading quotes...</h3>
+          <p>Please wait while fetching data from the server.</p>
         </div>
       </div>
     </main>
@@ -78,18 +75,18 @@
   <!-- Modal Dialog for Delete Confirmation -->
   <div id="delete-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-content">
-      <h3 id="modal-title" class="modal-title">Elimina Citazione</h3>
-      <p class="modal-body">Sei sicuro di voler eliminare definitivamente questa citazione? L'azione è irreversibile e rimuoverà il record dal file JSON sul disco.</p>
+      <h3 id="modal-title" class="modal-title">Delete Quote</h3>
+      <p class="modal-body">Are you sure you want to permanently delete this quote? This action is irreversible and will remove the record from the JSON file on disk.</p>
       <div class="modal-buttons">
-        <button id="modal-btn-cancel" class="btn btn-secondary">Annulla</button>
-        <button id="modal-btn-confirm" class="btn btn-danger">Sì, Elimina</button>
+        <button id="modal-btn-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="modal-btn-confirm" class="btn btn-danger">Yes, Delete</button>
       </div>
     </div>
   </div>
 
   <!-- Success Notification Toast -->
   <div id="toast" class="toast" role="alert" aria-live="polite">
-    Operazione completata con successo!
+    Operation completed successfully!
   </div>
 
   <!-- Include App Logic -->

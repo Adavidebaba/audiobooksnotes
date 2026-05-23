@@ -14,7 +14,7 @@ Ogni volta che premi il pulsante "Bookmark" (Segnalibro) sulla tua app di ascolt
 [Audiobookshelf Bookmark] 
        │
        ▼ (L'app rileva il bookmark)
-[Ritaglio Audio] ──► Taglia gli ultimi secondi (es. 30s prima e dopo il bookmark)
+[Ritaglio Audio] ──► Taglia gli ultimi secondi (es. 20s prima e dopo il bookmark)
        │
        ▼
 [Whisper API (OpenRouter)] ──► Converte la registrazione audio in testo
@@ -35,11 +35,13 @@ Ogni volta che premi il pulsante "Bookmark" (Segnalibro) sulla tua app di ascolt
 
 L'applicazione legge le sue impostazioni dal file nascosto chiamato `.env` situato nella cartella principale del progetto. Puoi aprirlo con qualsiasi editor di testo. I campi principali sono:
 
-* `ABS_URL`: L'indirizzo del tuo server Audiobookshelf (es. `http://192.168.1.100:8189`).
+* `ABS_URL`: L'indirizzo del tuo server Audiobookshelf (es. `http://192.168.1.100:8080`).
 * `ABS_TOKEN`: Il tuo token di sicurezza di Audiobookshelf (consente all'app di leggere i tuoi bookmark).
 * `OPENROUTER_API_KEY`: La tua chiave API di OpenRouter (necessaria per far funzionare l'Intelligenza Artificiale).
 * `OPENROUTER_LLM_MODEL`: Il modello AI per l'estrazione delle citazioni (impostato di default su `openrouter/auto`).
-* `OPENROUTER_STT_MODEL`: Il modello per la trascrizione vocale (impostato su `mistralai/voxtral-mini-transcribe` o Whisper).
+* `OPENROUTER_STT_MODEL`: Il modello per la trascrizione vocale (impostato su `mistralai/voxtral-mini-transcribe`).
+* `POLL_INTERVAL_SECONDS`: Intervallo in secondi tra ogni controllo su Audiobookshelf (es. `60`).
+* `PRE_SECONDS` / `POST_SECONDS`: Finestra audio da estrarre prima e dopo la marcatura del bookmark (es. `20`).
 
 ---
 
@@ -57,39 +59,42 @@ Grazie alla tecnologia Docker, non devi installare linguaggi di programmazione o
 
 ---
 
-## 💻 Come Usare la Dashboard Web
+## 💻 Come Usare la Dashboard Web (Inglese)
 
 Una volta avviata l'applicazione, apri il tuo browser web (Safari, Chrome o Firefox) e vai all'indirizzo:
 👉 **[http://localhost:7777](http://localhost:7777)**
 
-Ti troverai davanti a una dashboard moderna in modalità scura dove potrai gestire le tue note:
+Ti troverai davanti a una dashboard moderna in modalità scura, con l'interfaccia interamente localizzata in lingua inglese:
 
-### 1. Visualizzazione ed Espansione
-* Nella pagina principale vedrai l'elenco di tutte le citazioni salvate, ordinate per data (le ultime in alto).
+### 1. Visualizzazione Strutturata a Timeline
+* Le citazioni non sono più ripetitive: sono **raggruppate per libro** all'interno di eleganti schede di sezione.
+* All'interno di ogni libro, le citazioni sono organizzate come una **timeline cronologica** ordinate sequenzialmente per posizione audio (`time`) crescente.
 * Accanto a ogni citazione c'è un'etichetta colorata (*High, Medium, Low*) che indica quanto l'Intelligenza Artificiale è sicura della precisione di quella citazione.
-* Clicca su **"Espandi dettagli"** per aprire una sezione in cui confrontare la citazione estratta con l'intera trascrizione audio originale e leggere la spiegazione/ragionamento fornito dall'AI.
+* Il testo delle citazioni è visualizzato in caratteri normali nitidi e lineari (non in corsivo) per garantire la massima leggibilità.
 
-### 2. Modifica In-Place (Correzione Rapida)
-* Se la trascrizione automatica contiene parole errate, puoi **cliccare direttamente dentro la casella della citazione** e correggerla a mano.
-* Puoi anche cambiare il livello di precisione (confidence) dal comodo menu a tendina.
-* Clicca sul pulsante **"Salva"**: le modifiche verranno salvate all'istante all'interno dei file del tuo computer e un avviso verde a comparsa ti confermerà l'avvenuto salvataggio.
+### 2. Verifica In-Place & Dettagli Integrati ("Verify")
+* Accanto alla posizione temporale di ogni citazione troverai il pulsante minimalista **"✏️ Verify"**.
+* Cliccando su **"✏️ Verify"**, la card si espanderà all'istante rivelando:
+  * Una casella di testo interattiva per **correggere manualmente** la citazione se contiene errori di trascrizione.
+  * La sezione **"Original Transcription"** contenente il testo vocale grezzo estratto.
+  * La sezione **"LLM Extraction Reasoning"** con la spiegazione logica elaborata dall'Intelligenza Artificiale.
+  * Una scorciatoia per **ri-elaborare la singola citazione ("Reprocess +20% Audio")** allargando la finestra temporale.
+* Cliccando sul pulsante **"💾 Save"** salverai le modifiche in tempo reale e il livello di precisione (confidence) verrà automaticamente promosso a **High**.
+* Puoi richiudere la visualizzazione in qualsiasi momento premendo **"✕ Close"**.
 
-### 3. Filtri Intelligenti in Tempo Reale
+### 3. Esportazione JSON Mirata ("Download")
+* Non c'è più bisogno di applicare filtri di selezione per poter scaricare le note!
+* Sulla destra dell'intestazione di ciascun libro è presente un pulsante pillola ultra-elegante **"📥 Download"**.
+* Cliccandoci, scaricherai sul tuo Mac un file `.json` contenente **esclusivamente le citazioni di quel libro** ordinate per posizione, già formattate in modo pulito con le chiavi inglesi `quote` (citazione letterale) e `position` (minuti e secondi).
+* Prima del download, l'app effettuerà un controllo automatico e ti avviserà se ci sono note non ancora verificate (con confidence inferiore a *High*) per consentirti di correggerle prima dell'esportazione.
+
+### 4. Filtri Intelligenti in Tempo Reale
 In alto è presente una barra dei filtri che lavora all'istante senza ricaricare la pagina:
-* **Seleziona Libro**: Mostra solo le citazioni di un audiolibro specifico.
-* **Voto Confidence**: Filtra le citazioni in base alla loro accuratezza AI (es. vedi solo quelle con voto "Low" per correggerle rapidamente).
-* **Intervallo Date**: Scegli una data di inizio e di fine per vedere solo le citazioni che hai preso in quel determinato periodo (es. solo quelle di oggi o di questa settimana).
+* **Select Book**: Visualizza le citazioni di un solo audiolibro o di tutti ("All books").
+* **Confidence Level**: Filtra le citazioni in base all'accuratezza AI (High, Medium, Low) o visualizzale tutte ("All levels").
+* **Date Range**: Inserisci una data di inizio e di fine per vedere solo le citazioni prese in quel lasso temporale.
 
-### 4. Esportazione JSON (Pronta per Notion o Obsidian)
-* Quando selezioni un libro specifico dal filtro in alto, apparirà un pulsante **"📥 Scarica"** accanto al menu.
-* Cliccandoci, scaricherai sul tuo Mac un file `.json` pulito denominato con il titolo del libro e l'autore (es. `Gli insegnamenti segreti di Gesù - San Tommaso.json`).
-* Il file conterrà l'elenco delle citazioni ordinate, con indicata solo la **citazione** e la **posizione temporale** esatta (es. `33:00` ovvero minuti e secondi dell'audiolibro). È perfetto da copiare su altre app o database personali!
-
-### 5. Cancellazione Sicura
-* Se un bookmark non ti serve più, clicca sul pulsante rosso **"Elimina"**.
-* Ti apparirà una finestra di conferma per evitare cancellazioni accidentali. Cliccando su "Sì, Elimina", la nota verrà rimossa per sempre dal file del libro sul disco.
-
-### 6. Rigenerazione Totale (Override del Bootstrap)
-* Se desideri rielaborare da zero l'intero database (ad esempio dopo aver modificato i modelli AI o la lingua nel file `.env`), clicca sul pulsante rosso **"🔄 Rigenera Database"** in alto a destra nell'header.
-* Per sicurezza, ti verrà chiesta una **doppia conferma** prima di procedere per evitare azzeramenti involontari e avvisarti del potenziale consumo di crediti API di OpenRouter.
-* Una volta confermato, il database locale verrà azzerato e il server avvierà un riprocessamento completo in background di tutti i bookmark di Audiobookshelf. La dashboard mostrerà uno stato di attesa e caricherà dinamicamente le citazioni man mano che vengono elaborate!
+### 5. Rigenerazione Totale ("Regenerate Database")
+* Se desideri rielaborare da zero l'intero database locale (ad esempio per caricare tutti i bookmark storici dopo aver aggiornato la lingua o le impostazioni nel file `.env`), clicca sul pulsante **"🔄 Regenerate Database"** in alto a destra nell'header.
+* Ti verranno chieste due conferme di sicurezza consecutive per evitare azzeramenti involontari e avvisarti del potenziale consumo di crediti API OpenRouter.
+* Una volta confermato, il database locale verrà ricostruito in background e la dashboard caricherà gradualmente le citazioni man mano che vengono processate.

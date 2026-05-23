@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AudiobookNotes documentation and instructions page. Learn how to verify, export, and manage your quotes.">
+  <title>How to Use - AudiobookNotes</title>
+  <link rel="stylesheet" href="style.css?v=2.1.0">
+  <link rel="stylesheet" href="components.css?v=2.1.0">
+  <style>
+    .help-section {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--glass-shadow);
+      transition: var(--transition-smooth);
+    }
+    .help-section:hover {
+      border-color: var(--glass-border-hover);
+      box-shadow: var(--glass-shadow-hover);
+    }
+    .help-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+      padding-bottom: 0.5rem;
+    }
+    .help-step {
+      margin-bottom: 1.25rem;
+    }
+    .help-step h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      margin-bottom: 0.4rem;
+    }
+    .help-step p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .highlight-box {
+      background: rgba(139, 92, 246, 0.08);
+      border-left: 3px solid var(--accent-purple);
+      padding: 1rem;
+      border-radius: 0 12px 12px 0;
+      margin: 1rem 0;
+    }
+    .highlight-box p {
+      color: var(--text-main);
+      font-size: 0.92rem;
+      margin: 0;
+    }
+    .danger-card {
+      background: rgba(239, 68, 68, 0.05);
+      border: 1px solid rgba(239, 68, 68, 0.15);
+      border-radius: 16px;
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+    }
+    .danger-title {
+      color: var(--accent-danger);
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+    .danger-desc {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      margin: 0;
+      max-width: 500px;
+    }
+    code {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.9em;
+      color: var(--accent-warning);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2.5rem;">
+      <div style="text-align: left;">
+        <h1 id="main-title" style="margin-bottom: 0.25rem; background: linear-gradient(135deg, #ffffff 30%, #a78bfa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Documentation &amp; Guide</h1>
+        <p id="main-subtitle">Understand the workflow and manage your audiobook library notes</p>
+      </div>
+      <a href="index.html" class="btn btn-secondary" style="gap: 0.5rem; height: 44px; display: inline-flex; align-items: center; text-decoration: none;" title="Go back to the Dashboard">
+        ⬅️ Back to Dashboard
+      </a>
+    </header>
+
+    <main>
+      <!-- SECTION 1: How it works -->
+      <section class="help-section">
+        <h2 class="help-title">🚀 How it Works (The Data Flow)</h2>
+        <div class="help-step">
+          <p>AudiobookNotes operates seamlessly in the background to capture quotes whenever you create a bookmark while listening on your Audiobookshelf server:</p>
+          <div class="highlight-box">
+            <p><strong>1. Bookmark Detection:</strong> The backend monitors active Audiobookshelf sessions and detects newly created bookmarks.<br>
+            <strong>2. Audio Extraction:</strong> The server slices the audio around the bookmark timestamp (default: 20s before and 20s after).<br>
+            <strong>3. Voice-to-Text:</strong> The audio fragment is transcribed using the fast Mistral Voxtral model on OpenRouter.<br>
+            <strong>4. AI Quote Refinement:</strong> An LLM analyzes the transcription, isolates the exact literal quote spoken, determines the precision level, and provides its logical reasoning.<br>
+            <strong>5. Saving &amp; Visualizing:</strong> The results are saved locally in structured JSON files on your disk and displayed instantly on the dashboard.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: Managing & Verifying Quotes -->
+      <section class="help-section">
+        <h2 class="help-title">✏️ Managing and Verifying Quotes</h2>
+        <div class="help-step">
+          <h3>Confidence Ratings</h3>
+          <p>Each quote displays a confidence badge (<code>High</code>, <code>Medium</code>, or <code>Low</code>) indicating the AI's estimation of literal accuracy compared to the raw transcription.</p>
+        </div>
+        <div class="help-step">
+          <h3>The Verification Mode ("Verify")</h3>
+          <p>By clicking the elegant <strong>"✏️ Verify"</strong> button in the top-right of any quote card, the card expands instantly into a comprehensive workspace:</p>
+          <ul style="color: var(--text-muted); font-size: 0.95rem; margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.7;">
+            <li><strong>Quote Editing:</strong> Double click or focus on the text box to make manual corrections in case of transcription errors.</li>
+            <li><strong>Original Transcription:</strong> Read the raw audio text transcript generated by Whisper.</li>
+            <li><strong>LLM Extraction Reasoning:</strong> See the AI's step-by-step reasoning on why it isolated that specific quote.</li>
+            <li><strong>Reprocess (+20% Audio):</strong> Trigger a single re-extraction if you suspect the quote was cut short. This will download a wider audio window, run Whisper again, and re-query the AI.</li>
+            <li><strong>Auto-Promotion:</strong> Saving any manual edit (via <strong>"💾 Save"</strong>) automatically elevates the confidence badge to <strong>High</strong>.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- SECTION 3: Dual Exporters -->
+      <section class="help-section">
+        <h2 class="help-title">📥 Dual Exporters (Notion, Obsidian, Readwise)</h2>
+        <div class="help-step">
+          <p>AudiobookNotes provides section-specific downloaders inside each book's header section so you can easily import your notes into personal knowledge bases:</p>
+        </div>
+        <div class="help-step">
+          <h3>1. Scarica JSON</h3>
+          <p>Downloads a clean, structured JSON file of the book containing quote arrays mapped with their exact audio positions (formatted as <code>MM:SS</code> or <code>HH:MM:SS</code>). Perfect for general scripting or customized database loading.</p>
+        </div>
+        <div class="help-step">
+          <h3>2. Scarica CSV Readwise</h3>
+          <p>Downloads a custom CSV file tailored to match the <strong>exact format</strong> required for seamless import into the <strong>Readwise</strong> ecosystem:</p>
+          <ul style="color: var(--text-muted); font-size: 0.95rem; margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.7;">
+            <li><strong>Structure:</strong> Fully RFC 4180 compliant with headers: <code>Highlight</code>, <code>Title</code>, <code>Author</code>, <code>URL</code>, <code>Note</code>, <code>Location</code>, <code>"Date"</code>.</li>
+            <li><strong>Empty Fields:</strong> URL and Note columns are exported strictly empty (<code>""</code>) to maintain import cleanliness.</li>
+            <li><strong>Location:</strong> Mapped with the audio timestamp in seconds represented as an integer (e.g. <code>2350</code>).</li>
+            <li><strong>Date:</strong> Bookmark date formatted strictly in UTC timezone as <code>"YYYY-MM-DD HH:mm:ss"</code> and wrapped in double quotes.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- SECTION 4: Database Regeneration (Moved from Homepage) -->
+      <section class="help-section" style="border-color: rgba(239, 68, 68, 0.15);">
+        <h2 class="help-title" style="color: var(--accent-danger); border-bottom-color: rgba(239, 68, 68, 0.08);">⚠️ Database Regeneration</h2>
+        <div class="help-step">
+          <p>If you've updated your <code>.env</code> settings, changed LLM models, modified the target translation language, or want to force a full reload of historical Audiobookshelf bookmarks, you can trigger a full database regeneration.</p>
+          <p style="color: var(--accent-danger); font-weight: 500; margin-top: 0.5rem;">🚨 Please note that this operation will completely purge your local cache, re-download all audio files from Audiobookshelf, and query the transcription and AI models from scratch, which consumes OpenRouter API credits.</p>
+        </div>
+
+        <div class="danger-card">
+          <div>
+            <h3 class="danger-title">Danger Zone: Reprocess Database</h3>
+            <p class="danger-desc">This action will delete all local quotes and rebuild the database in the background.</p>
+          </div>
+          <button id="btn-reprocess" class="btn btn-danger" style="gap: 0.5rem; height: 44px; display: inline-flex; align-items: center;" title="Reprocess all bookmarks from scratch">
+            🔄 Regenerate Database
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer style="text-align: center; padding: 2rem 0; margin-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.05); color: var(--text-dim); font-size: 0.9rem;">
+      <p>&copy; 2026 AudiobookNotes Dashboard. All rights reserved.</p>
+      <a href="index.html" style="color: var(--accent-purple); text-decoration: none; margin-top: 0.5rem; display: inline-block;">⬅️ Back to Dashboard</a>
+    </footer>
+  </div>
+
+  <!-- Reprocess Controller Logic -->
+  <script type="module">
+    const btnReprocess = document.getElementById('btn-reprocess');
+    
+    if (btnReprocess) {
+      btnReprocess.addEventListener('click', async () => {
+        const confirm1 = confirm("⚠️ WARNING: This operation will delete ALL current local quotes and reprocess them from scratch by reading them again from Audiobookshelf.\n\nDo you want to proceed?");
+        if (!confirm1) return;
+        
+        const confirm2 = confirm("🔥 SAFETY CONFIRMATION: The operation will take time and consume API credits to re-transcribe and re-analyze all bookmarks using AI. Are you ABSOLUTELY sure you want to proceed?");
+        if (!confirm2) return;
+        
+        try {
+          btnReprocess.disabled = true;
+          btnReprocess.innerHTML = '🔄 Regenerating...';
+          
+          const response = await fetch('/api/reprocess', { method: 'POST' });
+          if (!response.ok) throw new Error("Unable to trigger database reprocess.");
+          
+          alert("Success: Database regeneration started in the background! You can go back to the Dashboard to see quotes populating gradually.");
+          btnReprocess.innerHTML = '🔄 Database Regenerated!';
+        } catch (error) {
+          alert(`Error: ${error.message}`);
+          btnReprocess.disabled = false;
+          btnReprocess.innerHTML = '🔄 Regenerate Database';
+        }
+      });
+    }
+  </script>
+</body>
+</html>
