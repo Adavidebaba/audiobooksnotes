@@ -36,7 +36,7 @@
 
 ### ✅ Sì, assolutamente — ma con una trasformazione architetturale significativa
 
-L'app ha un **concept forte e originale**: trasformare un semplice gesto (premere bookmark) in una libreria strutturata di citazioni grazie all'AI. Questo è un **valore unico** che su App Store non ha competitori diretti.
+L'app ha un **concept forte e originale**: trasformare un semplice gesto (premere bookmark) in una libreria strutturata di citazioni grazie all'AI. Con l'aggiunta di un **player audiobook integrato**, il cerchio si chiude completamente: l'utente ascolta, piazza un bookmark, e la citazione appare magicamente in testo — tutto in un'unica app. Questo è un **valore unico** che su App Store non ha competitori diretti.
 
 ### Sfide Tecniche Principali
 
@@ -128,17 +128,32 @@ sequenceDiagram
 
 ## 4. Funzionalità dell'App iOS
 
+> [!IMPORTANT]
+> **Filosofia**: AudiobookNotes non è solo un estrattore di citazioni — è l'unica app dove **ascolti, piazzi un bookmark, e la citazione appare magicamente in testo**. Il player integrato chiude il cerchio: tutto avviene in un'unica app.
+
 ### 4.1 — Core (MVP — Versione 1.0)
 
+#### 🎧 Player Audiobook Integrato
+- **Browse libreria ABS**: navigazione della libreria dell'utente con copertine, autori, stato di ascolto
+- **Streaming audio da ABS**: riproduzione capitoli in streaming via API Audiobookshelf
+- **Piazzare bookmark dall'app**: pulsante dedicato durante l'ascolto per creare un bookmark → avvia automaticamente la pipeline AI di estrazione citazione
+- **Sync posizione di ascolto**: sincronizzazione bidirezionale della posizione con ABS (l'utente può continuare da dove ha lasciato, su qualsiasi client ABS)
+- **Controlli player**: play/pause, velocità (0.5x – 3x), skip ±15s/±30s, capitolo precedente/successivo
+- **Mini player persistente**: barra player sempre visibile in basso durante la navigazione dell'app
+- **Now Playing / Lock Screen**: controlli su schermata di blocco e Control Center via `MPNowPlayingInfoCenter`
+- **Riascolto segmento citazione**: tap su una citazione per riascoltare il segmento audio originale
+
 #### 📚 Libreria Personale
-- Vista a griglia/lista dei libri con copertine (scaricate da ABS o Open Library API)
+- Vista a griglia/lista dei libri con copertine (scaricate da ABS)
+- **Doppia vista**: libri in ascolto (con progresso) + libri con citazioni estratte
 - Contatore citazioni per libro
-- Ordinamento per: ultimo aggiornamento, titolo, autore, numero citazioni
+- Ordinamento per: ultimo ascolto, ultimo aggiornamento citazioni, titolo, autore
 
 #### 💬 Timeline Citazioni
 - Vista timeline cronologica per libro (come la dashboard web attuale ma nativa)
 - Badge di confidence colorati (🟢 High, 🟡 Medium, 🔴 Low)
 - Tap per espandere → mostra trascrizione originale + reasoning AI
+- **Tap su play** → riascolta il segmento audio direttamente
 - Swipe per azioni rapide: modifica, elimina, condividi
 
 #### ✏️ Editor Citazione
@@ -205,16 +220,19 @@ sequenceDiagram
 - "Ehi Siri, quante citazioni ho dal libro X?"
 - "Ehi Siri, aggiungi un tag 'filosofia' all'ultima citazione"
 
-#### 🎵 Player Audio Integrato
-- Riascolta il segmento audio originale della citazione direttamente dall'app
-- Utile per verificare la trascrizione senza tornare ad ABS
-- Controlli: play/pause, velocità, skip ±5s
+#### 🎧 Player Completo (upgrade)
+- **Sleep timer**: spegnimento automatico dopo X minuti o fine capitolo
+- **Download offline**: scarica audiolibri da ABS per ascolto senza rete
+- **CarPlay**: integrazione con Apple CarPlay per ascolto in auto
+- **Skip silences**: salta automaticamente i silenzi lunghi
+- **Equalizzatore**: preset audio (voce, musica, personalizzato)
 
 #### 📊 Statistiche e Gamification
 - Grafico della frequenza di lettura/annotazione nel tempo
-- "Streak" di giorni consecutivi con almeno una citazione
+- Tempo totale di ascolto per libro e complessivo
+- "Streak" di giorni consecutivi con almeno una citazione o sessione di ascolto
 - Obiettivi settimanali/mensili personalizzabili
-- Badge di achievement (es. "100 citazioni", "10 libri annotati")
+- Badge di achievement (es. "100 citazioni", "10 libri annotati", "50 ore di ascolto")
 
 #### 🌍 Social / Community (Opzionale)
 - Condivisione citazione su social con card grafica generata automaticamente
@@ -234,6 +252,8 @@ sequenceDiagram
 | **Sync Multi-Device** | iCloud / CloudKit | Sync automatico tra iPhone e iPad, zero server |
 | **Sicurezza Credenziali** | Keychain Services | Storage crittografato per token ABS e chiave OpenRouter |
 | **Elaborazione Audio** | AVFoundation | Taglio audio nativo, nessun ffmpeg necessario |
+| **Streaming Audio** | AVPlayer + AVAudioSession | Streaming audio da ABS, gestione interruzioni, audio in background |
+| **Lock Screen / Now Playing** | MPNowPlayingInfoCenter + MPRemoteCommandCenter | Controlli su schermata di blocco e Control Center |
 | **Notifiche** | UNUserNotificationCenter | Notifiche locali, nessun server push richiesto |
 | **Background Tasks** | BGTaskScheduler | Polling ABS e elaborazione in background |
 | **Analytics** | Xcode Organizer + OSLog | Crash report e metriche senza dipendenze esterne |
@@ -265,7 +285,9 @@ AudiobookNotesApp/
 │   │   ├── SwiftDataContainer.swift     # Configurazione ModelContainer + iCloud
 │   │   └── KeychainManager.swift        # CRUD credenziali nel Keychain
 │   ├── Audio/
-│   │   └── AudioSegmentProcessor.swift  # Taglio audio con AVFoundation
+│   │   ├── AudioSegmentProcessor.swift  # Taglio audio con AVFoundation
+│   │   ├── AudioStreamingManager.swift  # Streaming da ABS via AVPlayer
+│   │   └── NowPlayingManager.swift      # Lock screen + Control Center
 │   └── Services/
 │       ├── BookmarkPollingService.swift  # Polling nuovi bookmark da ABS
 │       ├── TranscriptionService.swift   # Invio audio → OpenRouter STT
@@ -277,6 +299,11 @@ AudiobookNotesApp/
 │   │   ├── OnboardingView.swift
 │   │   ├── OnboardingViewModel.swift
 │   │   └── ConnectionTestManager.swift  # Test connessione ABS
+│   ├── Player/
+│   │   ├── PlayerView.swift             # UI player full-screen
+│   │   ├── MiniPlayerView.swift         # Barra player persistente
+│   │   ├── PlayerViewModel.swift        # Logica playback + bookmark
+│   │   └── ChapterListView.swift        # Lista capitoli con progresso
 │   ├── Library/
 │   │   ├── LibraryView.swift
 │   │   └── LibraryViewModel.swift
@@ -344,13 +371,18 @@ AudiobookNotesApp/
 
 ```mermaid
 graph LR
-    A["🏠 Libreria\n(griglia libri)"] --> B["📖 Dettaglio Libro\n(timeline citazioni)"]
-    B --> C["✏️ Editor Citazione\n(modifica/verifica)"]
-    A --> D["🔍 Ricerca Globale"]
-    A --> E["⚙️ Impostazioni"]
-    E --> F["📤 Esportazione"]
-    A --> G["📊 Statistiche"]
+    A["🏠 Libreria\n(griglia libri)"] --> B["🎧 Player\n(ascolto + bookmark)"]
+    A --> C["📖 Dettaglio Libro\n(timeline citazioni)"]
+    C --> D["✏️ Editor Citazione\n(modifica/verifica)"]
+    B --> C
+    A --> E["🔍 Ricerca Globale"]
+    A --> F["⚙️ Impostazioni"]
+    F --> G["📤 Esportazione"]
+    A --> H["📊 Statistiche"]
 ```
+
+> [!NOTE]
+> Il **Player** è raggiungibile dalla Libreria (tap su un libro → inizia/riprende ascolto) e dal **Dettaglio Libro** (tap su una citazione → riascolta il segmento). Un **Mini Player** resta sempre visibile in basso durante la navigazione.
 
 ---
 
@@ -363,7 +395,8 @@ graph LR
 
 #### 🆓 Piano Gratuito
 - Connessione a 1 server Audiobookshelf
-- Fino a **3 libri** con citazioni
+- **Player audiobook completo** (streaming, bookmark, sync posizione)
+- Fino a **3 libri** con citazioni AI estratte
 - Fino a **50 citazioni totali**
 - Esportazione JSON base
 - Tema dark di default
@@ -382,8 +415,7 @@ graph LR
 - Tutto di Pro +
 - **AI Insights**: riassunti, temi, connessioni tra libri
 - **Flashcard automatiche** con ripetizione spaziata
-- **Player audio** integrato per riascoltare i segmenti
-- **Backup cloud** delle citazioni
+- **Player avanzato**: sleep timer, download offline, CarPlay, skip silences
 - **Accesso anticipato** a nuove funzionalità
 - Supporto prioritario
 
@@ -467,14 +499,16 @@ graph LR
 
 | App | Cosa fa | Differenza con AudiobookNotes |
 |---|---|---|
-| **Readwise** | Aggrega highlight da Kindle, articoli, PDF | Non supporta audiolibri, non fa trascrizione |
-| **Audible** | Player audiolibri con clip e note | Le clip sono manuali, non c'è AI extraction |
+| **Readwise** | Aggrega highlight da Kindle, articoli, PDF | Non supporta audiolibri, non fa trascrizione, nessun player |
+| **Audible** | Player audiolibri con clip e note | Le clip sono manuali, non c'è AI extraction, ecosistema chiuso |
+| **Prologue** | Player per Plex audiobooks | Solo player, nessuna estrazione citazioni |
+| **BookPlayer** | Player locale per audiolibri | Solo file locali, nessuna integrazione ABS, zero AI |
 | **Bookly** | Tracking lettura, statistiche | Solo libri fisici/ebook, zero audiolibri |
 | **Highlighter** | Cattura citazioni da foto/OCR | Solo testo visivo, non audio |
-| **AudiobookNotes** | **AI-powered verbatim quote extraction da audiolibri** | **UNICO nel mercato** |
+| **AudiobookNotes** | **Player + AI-powered verbatim quote extraction** | **UNICO: l'unica app che unisce ascolto e estrazione AI automatica** |
 
 > [!IMPORTANT]
-> **Posizionamento unico**: AudiobookNotes è l'unica soluzione che trasforma un bookmark audio in una citazione testuale precisa grazie all'AI. Questo è un vantaggio competitivo fortissimo da comunicare nel marketing.
+> **Doppio posizionamento unico**: AudiobookNotes è sia un **player per Audiobookshelf di qualità** (alternativa a Prologue/client web ABS) sia l'unica app che **trasforma un bookmark audio in citazione testuale via AI**. Questo doppio valore rende l'app appetibile anche per utenti ABS che non usano la funzione citazioni.
 
 ---
 
@@ -484,20 +518,36 @@ graph LR
 - [ ] Creare account Apple Developer (€99/anno)
 - [ ] Setup progetto Xcode con architettura MVVM + SwiftData
 - [ ] Configurare iCloud entitlement per sync tra dispositivi
-- [ ] Definire modelli SwiftData (Book, Quote, Bookmark, ProcessingJob)
+- [ ] Definire modelli SwiftData (Book, Quote, Bookmark, ProcessingJob, ListeningProgress)
 - [ ] Implementare KeychainManager per storage credenziali
+- [ ] Configurare AVAudioSession per audio in background
 
-### Fase 1 — MVP (8-10 settimane)
-- [ ] Onboarding con setup ABS (QR code) e chiave OpenRouter
+### Fase 1 — MVP (10-14 settimane)
+
+**Player Audiobook:**
+- [ ] AudioStreamingManager: streaming capitoli da ABS via AVPlayer
+- [ ] PlayerView + MiniPlayerView: UI player full-screen e barra persistente
+- [ ] Controlli: play/pause, velocità (0.5x–3x), skip ±15s/±30s, navigazione capitoli
+- [ ] NowPlayingManager: integrazione Lock Screen e Control Center
+- [ ] Pulsante "Crea Bookmark" nel player → avvia pipeline AI automaticamente
+- [ ] Sync posizione di ascolto bidirezionale con ABS
+- [ ] Audio in background (AVAudioSession category `.playback`)
+
+**Pipeline Citazioni:**
 - [ ] ABSClient: connessione diretta dall'iPhone al server ABS dell'utente
 - [ ] AudioSegmentProcessor: download e taglio audio con AVFoundation
 - [ ] Pipeline on-device: bookmark → audio → STT (OpenRouter) → LLM (OpenRouter) → citazione
-- [ ] Libreria libri con copertine
-- [ ] Timeline citazioni per libro
+- [ ] Notifiche locali al completamento elaborazione
+
+**Libreria e Citazioni:**
+- [ ] Onboarding con setup ABS (QR code) e chiave OpenRouter
+- [ ] Libreria libri con copertine e doppia vista (ascolto + citazioni)
+- [ ] Timeline citazioni per libro con tap per riascolto segmento
 - [ ] Editor citazione con salvataggio
 - [ ] Rielaborazione singola citazione
 - [ ] Pull-to-refresh + BGProcessingTask per polling automatico
-- [ ] Notifiche locali al completamento elaborazione
+
+**Base:**
 - [ ] Dark mode nativo
 - [ ] Accessibilità base (VoiceOver)
 - [ ] Localizzazione IT + EN
@@ -510,11 +560,12 @@ graph LR
 - [ ] In-App Purchase (StoreKit 2 con validazione locale)
 - [ ] Siri Shortcuts base
 
-### Fase 3 — AI & Premium (6-8 settimane)
+### Fase 3 — AI & Player Avanzato (6-8 settimane)
 - [ ] AI Insights (riassunti, temi, connessioni — via OpenRouter)
 - [ ] Flashcard con ripetizione spaziata (storage locale SwiftData)
-- [ ] Player audio integrato (AVFoundation, streaming da ABS)
-- [ ] Statistiche e gamification (calcoli locali su SwiftData)
+- [ ] Player avanzato: sleep timer, download offline da ABS, skip silences
+- [ ] CarPlay: integrazione ascolto in auto
+- [ ] Statistiche e gamification (tempo ascolto, streak, badge)
 - [ ] Supporto iPad con layout ottimizzato
 
 ### Fase 4 — Social & Growth (4-6 settimane)
@@ -533,7 +584,7 @@ graph LR
 | Voce | Stima | Note |
 |---|---|---|
 | Account Apple Developer | €99/anno | Obbligatorio |
-| Sviluppo MVP (se freelancer) | €8.000 - €15.000 | 8-10 settimane di lavoro |
+| Sviluppo MVP (se freelancer) | €12.000 - €20.000 | 10-14 settimane (include player) |
 | Sviluppo MVP (se fai da te con AI) | €0 (tempo) | Con Gemini/Claude come copilota |
 | Design professionale (opzionale) | €1.500 - €3.000 | Per schermate marketing e icona |
 | ~~Firebase~~ | ~~€0 - €50/mese~~ | **ELIMINATO — non più necessario** |
@@ -602,13 +653,18 @@ Se decidi di procedere, ecco i primi 5 passi:
 
 ## 16. Conclusione
 
-**AudiobookNotes ha un concept forte, originale e senza concorrenti diretti.** La trasformazione in app iOS è non solo fattibile, ma ha un potenziale commerciale reale. Il mercato degli audiolibri è in forte crescita, e nessun competitor offre estrazione AI automatica di citazioni da bookmark audio.
+**AudiobookNotes ha un concept forte, originale e senza concorrenti diretti.** La trasformazione in app iOS è non solo fattibile, ma ha un potenziale commerciale reale. Il mercato degli audiolibri è in forte crescita, e nessun competitor offre un player con estrazione AI automatica di citazioni da bookmark audio.
 
 L'architettura **"device-first"** rende l'app:
 1. **Indipendente** — nessun server da mantenere, zero costi ricorrenti
 2. **Privata** — tutti i dati restano sul dispositivo dell'utente
 3. **Semplice** — solo 2 credenziali da configurare (ABS + OpenRouter)
 4. **Resiliente** — funziona offline per lettura/ricerca, si sincronizza via iCloud
+
+Il **player integrato** amplia il pubblico target:
+- **Utenti ABS senza app iOS** → trovano un player di qualità nativo
+- **Utenti ABS che vogliono citazioni** → trovano la funzione AI unica
+- **Workflow chiuso al 100%** → ascolto + bookmark + citazione in un'unica app
 
 La chiave del successo sarà:
 1. **Un'esperienza utente premium** che giustifichi il prezzo dell'abbonamento
