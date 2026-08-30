@@ -16,16 +16,20 @@ class StateManager:
     def _load_state(self) -> Dict[str, Any]:
         """Loads state from file, or returns a blank new state structure if not found/invalid."""
         if not self.state_file_path.exists():
-            return {"version": 1, "bookmarks": {}}
+            return {"version": 1, "bookmarks": {}, "youtube_processed": {}}
         try:
             with open(self.state_file_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                # Ensure youtube_processed section exists (backward compatibility)
+                if "youtube_processed" not in data:
+                    data["youtube_processed"] = {}
+                return data
         except (json.JSONDecodeError, IOError):
             # Back up corrupted file and return fresh
             backup_path = self.state_file_path.with_suffix(".corrupted")
             if self.state_file_path.exists():
                 os.replace(self.state_file_path, backup_path)
-            return {"version": 1, "bookmarks": {}}
+            return {"version": 1, "bookmarks": {}, "youtube_processed": {}}
 
     def save_state(self) -> None:
         """Persists the current state atomically using a temporary file."""
@@ -120,7 +124,41 @@ class StateManager:
 
         self.state["bookmarks"][key] = entry
 
+    # --- YouTube link tracking ---
+
+    def get_youtube_link_key(self, video_id: str, timestamp: int) -> str:
+        """Generates a stable string key for a YouTube link based on video ID and timestamp."""
+        return f"{video_id}:{timestamp}"
+
+    def is_youtube_link_processed(self, video_id: str, timestamp: int) -> bool:
+        """Checks whether a YouTube link has already been processed."""
+        key = self.get_youtube_link_key(video_id, timestamp)
+        yt_state = self.state.get("youtube_processed", {}).get(key)
+        return yt_state is not None and yt_state.get("status") in ("ok", "failed")
+
+    def mark_youtube_link_processed(
+        self,
+        video_id: str,
+        timestamp: int,
+        raw_url: str,
+        status: str,
+        error_msg: str = None
+    ) -> None:
+        """Marks a YouTube link as processed or failed in the state."""
+        key = self.get_youtube_link_key(video_id, timestamp)
+        entry = {
+            "video_id": video_id,
+            "timestamp": timestamp,
+            "raw_url": raw_url,
+            "processed_at": datetime.utcnow().isoformat() + "Z",
+            "status": status
+        }
+        if error_msg:
+            entry["error"] = error_msg
+
+        self.state["youtube_processed"][key] = entry
+
     def clear_state(self) -> None:
         """Clears all historical records in the state and saves it."""
-        self.state = {"version": 1, "bookmarks": {}}
+        self.state = {"version": 1, "bookmarks": {}, "youtube_processed": {}}
         self.save_state()

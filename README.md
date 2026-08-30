@@ -94,7 +94,33 @@ In alto è presente una barra dei filtri che lavora all'istante senza ricaricare
 * **Confidence Level**: Filtra le citazioni in base all'accuratezza AI (High, Medium, Low) o visualizzale tutte ("All levels").
 * **Date Range**: Inserisci una data di inizio e di fine per vedere solo le citazioni prese in quel lasso temporale.
 
-### 5. Rigenerazione Totale ("Regenerate Database")
+### 5. Citazioni da Video YouTube 🎬 (Nuova Funzionalità)
+Oltre agli audiolibri, l'app può ora catturare citazioni da **video YouTube**!
+
+#### Come Funziona:
+1. **Crei un Google Sheet** con una singola colonna dove incolli i link YouTube con timestamp (es. `https://youtu.be/abc123?t=185`).
+2. **Condividi il foglio** come "Chiunque abbia il link può visualizzare".
+3. **Configuri il `.env`** con la tua API Key di Google Cloud e l'ID del foglio.
+4. L'app controlla il foglio ad ogni ciclo di polling e processa automaticamente i nuovi link:
+   * Scarica i **sottotitoli** del video dalla piattaforma YouTube
+   * Estrae la **citazione esatta** usando l'AI, nella finestra temporale intorno al timestamp
+   * Se il video è in **inglese**, la citazione viene **tradotta automaticamente in italiano**
+   * Se i sottotitoli non sono disponibili, la citazione viene salvata con confidence **Low** per la revisione manuale
+5. Le citazioni YouTube appaiono nella **stessa dashboard** degli audiolibri, con:
+   * Badge 🎬 per distinguerle dai libri (🎧)
+   * **Timestamp cliccabile** che apre il video YouTube al punto esatto
+   * Citazione **originale in inglese** visibile nei dettagli espansi (se tradotta)
+
+#### Configurazione `.env`:
+```
+GOOGLE_SHEETS_API_KEY=la_tua_api_key_google
+YOUTUBE_SHEET_ID=l_id_del_tuo_foglio_google
+YOUTUBE_PRE_SECONDS=60    # Secondi di sottotitoli prima del timestamp
+YOUTUBE_POST_SECONDS=60   # Secondi di sottotitoli dopo il timestamp
+```
+La funzionalità è **completamente opzionale**: se queste variabili non sono configurate, l'app funziona normalmente solo con Audiobookshelf.
+
+### 6. Rigenerazione Totale ("Regenerate Database")
 * Se desideri rielaborare da zero l'intero database locale (ad esempio per caricare tutti i bookmark storici dopo aver aggiornato la lingua o le impostazioni nel file `.env`), clicca sul pulsante **"🔄 Regenerate Database"** in alto a destra nell'header.
 * Ti verranno chieste due conferme di sicurezza consecutive per evitare azzeramenti involontari e avvisarti del potenziale consumo di crediti API OpenRouter.
 * Una volta confermato, il database locale verrà ricostruito in background e la dashboard caricherà gradualmente le citazioni man mano che vengono processate.

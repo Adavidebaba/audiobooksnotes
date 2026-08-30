@@ -15,6 +15,8 @@ from src.stt import SttManager
 from src.llm import LlmManager
 from src.store import StoreManager
 from src.web.server import WebServer
+from src.youtube_sheet_client import YouTubeSheetClient
+from src.youtube_transcript import YouTubeTranscriptManager
 
 class OrchestrationCoordinator:
     """Coordinator responsible for orchestrating the overall polling workflow and error handling."""
@@ -30,9 +32,25 @@ class OrchestrationCoordinator:
         self.store_mgr = StoreManager(config.books_dir)
         self.poll_lock = threading.RLock()
 
+        # YouTube (optional)
+        self.yt_sheet_client = None
+        self.yt_transcript_mgr = None
+        if config.youtube_enabled:
+            self.yt_sheet_client = YouTubeSheetClient(
+                api_key=config.google_sheets_api_key,
+                sheet_id=config.youtube_sheet_id
+            )
+            self.yt_transcript_mgr = YouTubeTranscriptManager(
+                pre_seconds=config.youtube_pre_seconds,
+                post_seconds=config.youtube_post_seconds
+            )
+            print("YouTube integration enabled.")
+
     def close(self) -> None:
         """Cleans up active resources."""
         self.abs_client.close()
+        if self.yt_sheet_client:
+            self.yt_sheet_client.close()
 
     def run_single_poll(self, force_bootstrap_all: bool = False) -> None:
         """Retrieves and processes any new or failed bookmarks from Audiobookshelf."""
@@ -58,6 +76,10 @@ class OrchestrationCoordinator:
             print(f"Rilevati {len(unprocessed)} nuovi bookmark da elaborare.")
             for bm in unprocessed:
                 self._process_bookmark_with_retry(bm)
+
+        # YouTube polling (if enabled)
+        if self.yt_sheet_client:
+            self._poll_youtube_sheet()
 
     def _process_bookmark_with_retry(self, bookmark: Dict[str, Any], max_retries: int = 3) -> None:
         """Attempts to process a bookmark, applying exponential backoff for transient failures."""
@@ -285,6 +307,101 @@ class OrchestrationCoordinator:
                     except OSError:
                         pass
 
+    def _poll_youtube_sheet(self) -> None:
+        """Reads pending YouTube links from Google Sheet and processes them."""
+        print("Polling Google Sheet per nuovi link YouTube...")
+        try:
+            all_links = self.yt_sheet_client.fetch_all_links()
+        except Exception as e:
+            print(f"Errore durante la lettura del Google Sheet: {e}")
+            return
+
+        pending = [
+            link for link in all_links
+            if not self.state_mgr.is_youtube_link_processed(link["video_id"], link["timestamp"])
+        ]
+
+        if not pending:
+            print("Nessun nuovo link YouTube da elaborare.")
+            return
+
+        print(f"Rilevati {len(pending)} nuovi link YouTube da elaborare.")
+        for link_data in pending:
+            self._process_youtube_link_with_retry(link_data)
+
+    def _process_youtube_link_with_retry(self, link_data: Dict[str, Any], max_retries: int = 2) -> None:
+        """Attempts to process a YouTube link with retry logic."""
+        video_id = link_data["video_id"]
+        timestamp = link_data["timestamp"]
+        raw_url = link_data["raw_url"]
+
+        print(f"\n[YouTube] Elaborazione video {video_id} al timestamp {timestamp}s...")
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                self._execute_youtube_pipeline(link_data)
+                self.state_mgr.mark_youtube_link_processed(video_id, timestamp, raw_url, "ok")
+                self.state_mgr.save_state()
+                print(f"[YouTube Completato] Video {video_id}:{timestamp}s salvato con successo.")
+                return
+            except Exception as e:
+                print(f"[YouTube] Tentativo {attempt}/{max_retries} fallito: {e}")
+                if attempt < max_retries:
+                    time.sleep(2.0)
+
+        # All retries failed — mark as failed to avoid infinite retries
+        self.state_mgr.mark_youtube_link_processed(video_id, timestamp, raw_url, "failed", str(e))
+        self.state_mgr.save_state()
+        print(f"[YouTube Fallito] Video {video_id}:{timestamp}s non elaborato.")
+
+    def _execute_youtube_pipeline(self, link_data: Dict[str, Any]) -> None:
+        """Executes the full YouTube extraction pipeline for a single link."""
+        video_id = link_data["video_id"]
+        timestamp = link_data["timestamp"]
+        raw_url = link_data["raw_url"]
+
+        # Build video URL for the store
+        video_url = f"https://www.youtube.com/watch?v={video_id}&t={timestamp}"
+
+        # 1. Download subtitles
+        result = self.yt_transcript_mgr.get_transcript_window(video_id, timestamp)
+        transcript = result.get("transcript")
+        subtitles_available = result.get("available", False)
+
+        # 2. Extract quote (or create placeholder for manual entry)
+        if transcript and transcript.strip():
+            print(f"[YouTube] Sottotitoli disponibili. Estrazione citazione con LLM...")
+            quote_data = self.llm_mgr.extract_youtube_quote(
+                transcript=transcript,
+                video_title=f"YouTube Video {video_id}",
+                channel_name="YouTube",
+                timestamp=timestamp
+            )
+        else:
+            error_reason = result.get("error_message", "Subtitles not available.")
+            print(f"[YouTube] Sottotitoli non disponibili: {error_reason}")
+            quote_data = {
+                "quote": None,
+                "quote_original": None,
+                "quote_language": "",
+                "confidence": "low",
+                "reasoning": f"Subtitles not available for this video. "
+                             f"Please add the quote manually via Verify. ({error_reason})"
+            }
+
+        # 3. Save to store
+        self.store_mgr.append_youtube_quote(
+            video_id=video_id,
+            video_title=f"YouTube: {video_id}",
+            channel_name="YouTube",
+            video_url=video_url,
+            timestamp=timestamp,
+            transcript=transcript or "",
+            quote_data=quote_data,
+            pre_seconds=self.config.youtube_pre_seconds,
+            post_seconds=self.config.youtube_post_seconds
+        )
+
 def main() -> None:
     """Entry point of the application."""
     print("=== Inizializzazione AudiobookNotes ===")
@@ -298,6 +415,10 @@ def main() -> None:
         
     print(f"Servizio avviato con successo. Intervallo di polling: {config.poll_interval_seconds}s.")
     print(f"Modalità Bootstrap: {config.bootstrap_mode}")
+    if config.youtube_enabled:
+        print(f"YouTube integration: ENABLED (Sheet ID: {config.youtube_sheet_id[:8]}...)")
+    else:
+        print("YouTube integration: DISABLED (no API key or Sheet ID configured)")
     
     # Avvio del ciclo di polling in un thread in background (daemon)
     def poll_worker() -> None:

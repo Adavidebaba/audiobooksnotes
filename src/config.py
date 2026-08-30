@@ -43,6 +43,13 @@ class ConfigManager:
         self.bootstrap_mode = os.getenv("BOOTSTRAP_MODE", "skip")
         self.bootstrap_since_iso = os.getenv("BOOTSTRAP_SINCE_ISO", "")
 
+        # YouTube via Google Sheets (optional)
+        self.google_sheets_api_key = os.getenv("GOOGLE_SHEETS_API_KEY", "")
+        self.youtube_sheet_id = os.getenv("YOUTUBE_SHEET_ID", "")
+        self.youtube_pre_seconds = int(os.getenv("YOUTUBE_PRE_SECONDS", "60"))
+        self.youtube_post_seconds = int(os.getenv("YOUTUBE_POST_SECONDS", "60"))
+        self.youtube_enabled = bool(self.google_sheets_api_key and self.youtube_sheet_id)
+
         # Create directories if they do not exist
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.books_dir = self.data_dir / "books"

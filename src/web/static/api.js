@@ -50,6 +50,15 @@ export class QuotesApiManager {
   }
 
   /**
+   * Triggers an immediate manual polling check for new Audiobookshelf bookmarks and YouTube links.
+   */
+  static async triggerManualPoll() {
+    const response = await fetch('/api/poll', { method: 'POST' });
+    if (!response.ok) throw new Error("Impossibile avviare il controllo manuale.");
+    return await response.json();
+  }
+
+  /**
    * Triggers a complete database regeneration from ABS bookmarks.
    */
   static async triggerDatabaseReprocess() {

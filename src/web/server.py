@@ -72,6 +72,13 @@ class WebServer:
                 raise HTTPException(status_code=404, detail="Citazione non trovata o eliminazione fallita.")
             return {"status": "success", "message": "Citazione eliminata con successo."}
 
+        @self.app.post("/api/poll")
+        def trigger_manual_poll() -> Dict[str, Any]:
+            """API endpoint to trigger an immediate manual polling check for new Audiobookshelf bookmarks and YouTube links."""
+            import threading
+            threading.Thread(target=self.coordinator.run_single_poll, daemon=True).start()
+            return {"status": "success", "message": "Controllo nuovi contenuti avviato in background."}
+
         @self.app.post("/api/reprocess")
         def reprocess_all() -> Dict[str, Any]:
             """API endpoint to trigger a complete re-processing of all bookmarks from scratch."""

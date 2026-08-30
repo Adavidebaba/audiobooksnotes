@@ -2,6 +2,39 @@
 
 Tutti i cambiamenti significativi a questo progetto saranno documentati in questo file.
 
+## [3.1.0] - 2026-08-30
+
+### Aggiunto
+- **Navigazione a Tab nella Dashboard**: Switcher in alto tra sezioni dedicate per `🎧 Audiolibri` e `🎬 YouTube Video` con contatori in tempo reale.
+- **Flusso Cronologico per YouTube**: Visualizzazione continua senza sezioni divisorie per titolo; card compatte con canale, titolo video, link diretto al timestamp (`▶️ mm:ss`), data e citazione.
+- **Pulsante Unico di Esportazione YouTube**: Toolbar dedicata con pulsante unico per esportare tutte le citazioni YouTube filtrate in CSV Readwise (RFC 4180) o JSON.
+- **Pulsante Sincronizzazione Manuale**: Tasto `🔄 Sincronizza Ora` nell'header e nuovo endpoint `POST /api/poll` per avviare il controllo immediato dei nuovi bookmark ABS e link YouTube.
+- **Modularizzazione Frontend (OOP)**: Nuovi moduli `export_manager.js` e `tabs.css`; codice organizzato e mantenuto rigorosamente sotto il limite di 500 righe per file.
+
+## [3.0.0] - 2026-08-30
+
+### Aggiunto
+- **Citazioni YouTube via Google Sheets**: Nuova pipeline per catturare citazioni da video YouTube.
+  - Incolli i link YouTube (con timestamp) in un Google Sheet condiviso.
+  - L'app fa polling sul foglio (stesso ciclo di ABS) e processa i nuovi link automaticamente.
+  - Sottotitoli scaricati via `youtube-transcript-api` (gratuito, nessun credito API per la trascrizione).
+  - LLM estrae la citazione dalla finestra di sottotitoli (120s configurabile).
+  - **Traduzione automatica**: citazioni in inglese tradotte in italiano dall'LLM; originale conservato.
+  - **Graceful degradation**: se i sottotitoli non sono disponibili, la citazione viene salvata con `confidence: low` per la revisione manuale tramite il pulsante "Verify" esistente.
+  - Tracking dei link processati in `state.json` (sezione `youtube_processed`).
+- **Badge sorgente nella dashboard**: Icona 🎬 per citazioni YouTube, 🎧 per audiolibri.
+- **Link cliccabile al video**: Il timestamp delle citazioni YouTube è un link che apre il video al punto esatto.
+- **Citazione originale**: Per le citazioni tradotte, la versione originale in inglese è visibile nei dettagli espansi.
+- **Nuovi moduli**: `youtube_sheet_client.py` (lettura Google Sheet) e `youtube_transcript.py` (sottotitoli YouTube).
+- **Nuove variabili .env**: `GOOGLE_SHEETS_API_KEY`, `YOUTUBE_SHEET_ID`, `YOUTUBE_PRE_SECONDS`, `YOUTUBE_POST_SECONDS`.
+
+### Modificato
+- **Feature opzionale e retrocompatibile**: Se le variabili YouTube non sono configurate, l'app funziona esattamente come prima.
+- **StoreManager**: Nuovo metodo `append_youtube_quote()` e campo `source_type` in tutte le citazioni (default `"audiobook"`).
+- **StateManager**: Nuova sezione `youtube_processed` con backward compatibility automatica.
+- **LlmManager**: Nuovo metodo `extract_youtube_quote()` con prompt ottimizzato per video e traduzione.
+- **Dashboard UI**: Badge sorgente, link cliccabili, citazione originale, pulsante "Reprocess" nascosto per YouTube.
+
 ## [2.0.0] - 2026-05-24
 
 ### Aggiunto

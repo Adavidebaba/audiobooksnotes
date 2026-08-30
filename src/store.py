@@ -157,6 +157,7 @@ class StoreManager:
                 library_item_id = book_data.get("libraryItemId", "")
                 book_title = book_data.get("title", "Titolo Sconosciuto")
                 book_author = book_data.get("author", "Autore Sconosciuto")
+                source_type = book_data.get("source_type", "audiobook")
                 
                 # Use deduplicated bookmarks
                 bookmarks = self._deduplicate_bookmarks(book_data.get("bookmarks", []))
@@ -165,6 +166,7 @@ class StoreManager:
                         "libraryItemId": library_item_id,
                         "bookTitle": book_title,
                         "bookAuthor": book_author,
+                        "source_type": source_type,
                         "time": bookmark.get("time", 0.0),
                         "title": bookmark.get("title", ""),
                         "createdAt": bookmark.get("createdAt", 0),
@@ -172,8 +174,11 @@ class StoreManager:
                         "audio_window": bookmark.get("audio_window", {"pre": 30, "post": 30}),
                         "transcript": bookmark.get("transcript", ""),
                         "quote": bookmark.get("quote"),
+                        "quote_original": bookmark.get("quote_original"),
+                        "quote_language": bookmark.get("quote_language", ""),
                         "quote_confidence": bookmark.get("quote_confidence", "low"),
-                        "quote_reasoning": bookmark.get("quote_reasoning", "")
+                        "quote_reasoning": bookmark.get("quote_reasoning", ""),
+                        "video_url": bookmark.get("video_url", "")
                     }
                     all_quotes.append(quote_entry)
             except (json.JSONDecodeError, IOError) as e:
@@ -301,6 +306,79 @@ class StoreManager:
             return True
             
         return False
+
+    def append_youtube_quote(
+        self,
+        video_id: str,
+        video_title: str,
+        channel_name: str,
+        video_url: str,
+        timestamp: int,
+        transcript: str,
+        quote_data: Dict[str, Any],
+        pre_seconds: int = 60,
+        post_seconds: int = 60
+    ) -> None:
+        """Appends a new YouTube-sourced quote entry to a video-specific JSON file."""
+        slug = self._slugify(video_title or video_id)
+        filename = f"yt_{video_id}__{slug}.json"
+        file_path = self.books_dir / filename
+
+        # Load or create video data structure
+        if file_path.exists():
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    video_data = json.load(f)
+                    if "bookmarks" in video_data:
+                        video_data["bookmarks"] = self._deduplicate_bookmarks(video_data["bookmarks"])
+            except (json.JSONDecodeError, IOError):
+                video_data = None
+
+        if not file_path.exists() or video_data is None:
+            video_data = {
+                "libraryItemId": f"yt_{video_id}",
+                "source_type": "youtube",
+                "title": video_title or f"YouTube: {video_id}",
+                "author": channel_name or "YouTube",
+                "video_id": video_id,
+                "video_url": video_url,
+                "updated_at": datetime.utcnow().isoformat() + "Z",
+                "bookmarks": []
+            }
+
+        created_at = int(datetime.utcnow().timestamp() * 1000)
+
+        bookmark_entry = {
+            "time": float(timestamp),
+            "title": "",
+            "createdAt": created_at,
+            "processed_at": datetime.utcnow().isoformat() + "Z",
+            "audio_window": {"pre": pre_seconds, "post": post_seconds},
+            "transcript": transcript or "",
+            "quote": quote_data.get("quote"),
+            "quote_original": quote_data.get("quote_original"),
+            "quote_language": quote_data.get("quote_language", ""),
+            "quote_confidence": quote_data.get("confidence", "low"),
+            "quote_reasoning": quote_data.get("reasoning", ""),
+            "video_url": video_url
+        }
+
+        # Avoid duplicates by timestamp
+        existing_index = -1
+        for i, bm in enumerate(video_data.get("bookmarks", [])):
+            if abs(bm.get("time", -1) - float(timestamp)) < 1.0:
+                existing_index = i
+                break
+
+        if existing_index >= 0:
+            video_data["bookmarks"][existing_index] = bookmark_entry
+            print(f"Aggiornata citazione YouTube esistente in {filename} (Tempo: {timestamp}s)")
+        else:
+            video_data["bookmarks"].append(bookmark_entry)
+            print(f"Aggiunta nuova citazione YouTube in {filename} (Tempo: {timestamp}s)")
+
+        video_data["updated_at"] = datetime.utcnow().isoformat() + "Z"
+        self._save_book_data_atomic(file_path, video_data)
 
     def clear_all_books(self) -> None:
         """Deletes all JSON files in the books directory."""

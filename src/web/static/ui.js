@@ -20,7 +20,7 @@ export class QuotesUiManager {
   }
 
   /**
-   * Utility to parse audio window times (seconds) to human mm:ss.
+   * Utility to format seconds into mm:ss.
    * @param {number} secs 
    * @returns {string}
    */
@@ -61,10 +61,10 @@ export class QuotesUiManager {
   }
 
   /**
-   * Creates a complete book section with header and quote cards.
+   * Creates an Audiobook section with book header, stats, and quote cards.
    * @param {string} bookTitle 
    * @param {string} bookAuthor 
-   * @param {Array} quotes - Array of quote objects for this book
+   * @param {Array} quotes 
    * @returns {HTMLElement}
    */
   static createBookSection(bookTitle, bookAuthor, quotes) {
@@ -80,17 +80,17 @@ export class QuotesUiManager {
     header.innerHTML = `
       <div class="book-section-info">
         <h2 class="book-section-title">${this.escapeHtml(bookTitle)}</h2>
-        <p class="book-section-author">${this.escapeHtml(bookAuthor)}</p>
+        <p class="book-section-author">di ${this.escapeHtml(bookAuthor)}</p>
       </div>
       <div class="book-section-actions">
-        <button class="btn-download-book" onclick="downloadBookQuotes('${quotes[0].libraryItemId}')" title="Download quotes in JSON format">
+        <button class="btn-download-book" onclick="window.downloadBookQuotes('${quotes[0].libraryItemId}')" title="Scarica citazioni in formato JSON">
           📥 Scarica JSON
         </button>
-        <button class="btn-download-book btn-download-readwise" onclick="downloadBookReadwiseCsv('${quotes[0].libraryItemId}')" title="Download quotes in Readwise CSV format">
+        <button class="btn-download-book btn-download-readwise" onclick="window.downloadBookReadwiseCsv('${quotes[0].libraryItemId}')" title="Scarica citazioni in formato Readwise CSV">
           📥 Scarica CSV Readwise
         </button>
         <div class="book-section-stats">
-          <span class="stat-pill">${quotes.length} ${quotes.length === 1 ? 'quote' : 'quotes'}</span>
+          <span class="stat-pill">${quotes.length} ${quotes.length === 1 ? 'citazione' : 'citazioni'}</span>
           ${highCount > 0 ? `<span class="stat-pill stat-high">${highCount} high</span>` : ''}
           ${mediumCount > 0 ? `<span class="stat-pill stat-medium">${mediumCount} medium</span>` : ''}
           ${lowCount > 0 ? `<span class="stat-pill stat-low">${lowCount} low</span>` : ''}
@@ -109,8 +109,140 @@ export class QuotesUiManager {
   }
 
   /**
-   * Generates a quote card with read-mode by default (no textarea, no buttons).
-   * Edit mode is revealed on user click via toggleEditMode().
+   * Creates the unified feed for YouTube quotes with top toolbar and continuous cards.
+   * @param {Array} quotes 
+   * @returns {HTMLElement}
+   */
+  static createYouTubeFeed(quotes) {
+    const container = document.createElement('div');
+    container.className = 'youtube-stream-container';
+
+    // Toolbar with single export button and stats
+    const toolbar = document.createElement('div');
+    toolbar.className = 'youtube-stream-toolbar';
+    toolbar.innerHTML = `
+      <div class="youtube-stream-info">
+        <span class="youtube-stream-title">🎬 Flusso Citazioni YouTube</span>
+        <span class="stat-pill">${quotes.length} ${quotes.length === 1 ? 'citazione' : 'citazioni'}</span>
+      </div>
+      <div class="youtube-stream-actions">
+        <div class="export-menu-container">
+          <button class="btn-export-primary" id="btn-export-youtube-toggle" onclick="window.toggleYouTubeExportMenu(event)">
+            📥 Esporta Citazioni YouTube ▾
+          </button>
+          <div class="export-dropdown-menu" id="youtube-export-dropdown">
+            <button class="export-menu-item" onclick="window.exportAllYouTubeQuotes('readwise')">
+              📊 Scarica CSV Readwise
+            </button>
+            <button class="export-menu-item" onclick="window.exportAllYouTubeQuotes('json')">
+              📄 Scarica File JSON
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(toolbar);
+
+    // Continuous Chronological Feed
+    const feed = document.createElement('div');
+    feed.className = 'youtube-stream-feed';
+    quotes.forEach(quote => {
+      feed.appendChild(this.createYouTubeCard(quote));
+    });
+    container.appendChild(feed);
+
+    return container;
+  }
+
+  /**
+   * Generates an individual YouTube quote card optimized for chronological feed.
+   * @param {Object} quote 
+   * @returns {HTMLElement}
+   */
+  static createYouTubeCard(quote) {
+    const card = document.createElement('article');
+    card.className = 'youtube-card quote-card';
+    card.id = `quote-card-${quote.libraryItemId}-${quote.createdAt}`;
+
+    const badgeClass = `badge-${(quote.quote_confidence || 'low').toLowerCase()}`;
+    const quoteText = this.escapeHtml(quote.quote || '');
+    const videoUrl = quote.video_url || '#';
+    const videoTitle = this.escapeHtml(quote.bookTitle || 'Video YouTube');
+    const channelName = this.escapeHtml(quote.bookAuthor || 'Canale YouTube');
+    const timeLabel = this.formatTimeLabel(quote.time || 0);
+    const dateFormatted = this.formatDate(quote.createdAt);
+
+    const hasOriginalQuote = quote.quote_original && quote.quote_language && quote.quote_language !== 'it';
+    const originalQuoteBlock = hasOriginalQuote
+      ? `<div class="detail-block">
+           <h4>Citazione Originale (${this.escapeHtml(quote.quote_language.toUpperCase())})</h4>
+           <p>${this.escapeHtml(quote.quote_original)}</p>
+         </div>`
+      : '';
+
+    card.innerHTML = `
+      <div class="youtube-card-header">
+        <div class="youtube-meta-info">
+          <span class="youtube-channel-tag">📺 ${channelName} • 📅 ${dateFormatted}</span>
+          <h3 class="youtube-video-title">${videoTitle}</h3>
+        </div>
+        <div class="youtube-header-badges">
+          <a href="${this.escapeHtml(videoUrl)}" target="_blank" rel="noopener" class="youtube-time-link" title="Apri il video su YouTube a questo minuto">
+            ▶️ ${timeLabel}
+          </a>
+          <span class="badge ${badgeClass}" id="badge-val-${quote.libraryItemId}-${quote.createdAt}">${quote.quote_confidence || 'low'}</span>
+          <button class="btn-edit-toggle" onclick="window.toggleEditMode('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Verifica o modifica la citazione">
+            ✏️ Verifica
+          </button>
+        </div>
+      </div>
+
+      <!-- READ MODE -->
+      <div class="quote-read-view" id="read-view-${quote.libraryItemId}-${quote.createdAt}">
+        <blockquote class="quote-blockquote quote-blockquote-youtube">${quoteText}</blockquote>
+      </div>
+
+      <!-- EDIT MODE -->
+      <div class="quote-edit-view" id="edit-view-${quote.libraryItemId}-${quote.createdAt}">
+        <textarea class="quote-textarea" id="quote-val-${quote.libraryItemId}-${quote.createdAt}" aria-label="Testo citazione">${quoteText}</textarea>
+        
+        <div class="card-actions">
+          <div class="left-actions">
+            <select class="confidence-selector" id="select-val-${quote.libraryItemId}-${quote.createdAt}" aria-label="Modifica confidenza">
+              <option value="high" ${quote.quote_confidence === 'high' ? 'selected' : ''}>Alta</option>
+              <option value="medium" ${quote.quote_confidence === 'medium' ? 'selected' : ''}>Media</option>
+              <option value="low" ${quote.quote_confidence === 'low' ? 'selected' : ''}>Bassa</option>
+            </select>
+            
+            <button class="btn btn-primary" onclick="window.saveQuoteUpdate('${quote.libraryItemId}', ${quote.createdAt})">
+              💾 Salva
+            </button>
+          </div>
+          
+          <button class="btn btn-danger" onclick="window.confirmDeleteQuote('${quote.libraryItemId}', ${quote.createdAt})">
+            Elimina
+          </button>
+        </div>
+        
+        <div class="details-grid" style="margin-top: 1.25rem;">
+          ${originalQuoteBlock}
+          <div class="detail-block">
+            <h4>Trascrizione Originale</h4>
+            <p>${this.escapeHtml(quote.transcript || 'Nessuna trascrizione estratta.')}</p>
+          </div>
+          <div class="detail-block">
+            <h4>Ragionamento LLM</h4>
+            <p>${this.escapeHtml(quote.quote_reasoning || 'Nessuna motivazione fornita.')}</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    return card;
+  }
+
+  /**
+   * Generates a standard audiobook quote card with read/edit dual view.
    * @param {Object} quote 
    * @returns {HTMLElement}
    */
@@ -118,69 +250,70 @@ export class QuotesUiManager {
     const card = document.createElement('article');
     card.className = 'quote-card';
     card.id = `quote-card-${quote.libraryItemId}-${quote.createdAt}`;
-    
-    const badgeClass = `badge-${quote.quote_confidence.toLowerCase()}`;
+
+    const badgeClass = `badge-${(quote.quote_confidence || 'low').toLowerCase()}`;
     const quoteText = this.escapeHtml(quote.quote || '');
-    
+    const timeLabel = this.formatTimeLabel(quote.time || 0);
+
     card.innerHTML = `
       <div class="card-header">
         <div class="card-position">
-          <span class="position-marker">⏱️ ${this.formatTimeLabel(quote.time)}</span>
+          <span class="position-marker">⏱️ ${timeLabel}</span>
           <span class="badge ${badgeClass}" id="badge-val-${quote.libraryItemId}-${quote.createdAt}">${quote.quote_confidence}</span>
         </div>
-        <button class="btn-edit-toggle" onclick="toggleEditMode('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Verify or edit this quote">
-          ✏️ Verify
+        <button class="btn-edit-toggle" onclick="window.toggleEditMode('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Verifica o modifica la citazione">
+          ✏️ Verifica
         </button>
       </div>
       
-      <!-- READ MODE: readable text -->
+      <!-- READ MODE -->
       <div class="quote-read-view" id="read-view-${quote.libraryItemId}-${quote.createdAt}">
         <blockquote class="quote-blockquote">${quoteText}</blockquote>
       </div>
       
-      <!-- EDIT MODE: hidden by default -->
+      <!-- EDIT MODE -->
       <div class="quote-edit-view" id="edit-view-${quote.libraryItemId}-${quote.createdAt}">
-        <textarea class="quote-textarea" id="quote-val-${quote.libraryItemId}-${quote.createdAt}" aria-label="Quote text">${quoteText}</textarea>
+        <textarea class="quote-textarea" id="quote-val-${quote.libraryItemId}-${quote.createdAt}" aria-label="Testo citazione">${quoteText}</textarea>
         
         <div class="card-actions">
           <div class="left-actions">
-            <select class="confidence-selector" id="select-val-${quote.libraryItemId}-${quote.createdAt}" aria-label="Edit confidence">
-              <option value="high" ${quote.quote_confidence === 'high' ? 'selected' : ''}>High</option>
-              <option value="medium" ${quote.quote_confidence === 'medium' ? 'selected' : ''}>Medium</option>
-              <option value="low" ${quote.quote_confidence === 'low' ? 'selected' : ''}>Low</option>
+            <select class="confidence-selector" id="select-val-${quote.libraryItemId}-${quote.createdAt}" aria-label="Modifica confidenza">
+              <option value="high" ${quote.quote_confidence === 'high' ? 'selected' : ''}>Alta</option>
+              <option value="medium" ${quote.quote_confidence === 'medium' ? 'selected' : ''}>Media</option>
+              <option value="low" ${quote.quote_confidence === 'low' ? 'selected' : ''}>Bassa</option>
             </select>
             
-            <button class="btn btn-primary" onclick="saveQuoteUpdate('${quote.libraryItemId}', ${quote.createdAt})">
-              💾 Save
+            <button class="btn btn-primary" onclick="window.saveQuoteUpdate('${quote.libraryItemId}', ${quote.createdAt})">
+              💾 Salva
             </button>
           </div>
           
-          <button class="btn btn-danger" onclick="confirmDeleteQuote('${quote.libraryItemId}', ${quote.createdAt})">
-            Delete
+          <button class="btn btn-danger" onclick="window.confirmDeleteQuote('${quote.libraryItemId}', ${quote.createdAt})">
+            Elimina
           </button>
         </div>
         
         <div class="details-grid" style="margin-top: 1.25rem;">
           <div class="detail-block">
-            <h4>Original Transcription</h4>
-            <p>${this.escapeHtml(quote.transcript || 'No transcription extracted.')}</p>
+            <h4>Trascrizione Originale</h4>
+            <p>${this.escapeHtml(quote.transcript || 'Nessuna trascrizione estratta.')}</p>
           </div>
           <div class="detail-block">
-            <h4>LLM Extraction Reasoning</h4>
-            <p>${this.escapeHtml(quote.quote_reasoning || 'No reasoning provided.')}</p>
+            <h4>Ragionamento LLM</h4>
+            <p>${this.escapeHtml(quote.quote_reasoning || 'Nessuna motivazione fornita.')}</p>
           </div>
         </div>
         <div class="details-footer">
-          <span class="quote-date" title="Extracted audio portion">
-            ⏱️ Window: -${quote.audio_window ? quote.audio_window.pre : 30}s / +${quote.audio_window ? quote.audio_window.post : 30}s
+          <span class="quote-date" title="Porzione audio estratta">
+            ⏱️ Finestra: -${quote.audio_window ? quote.audio_window.pre : 30}s / +${quote.audio_window ? quote.audio_window.post : 30}s
           </span>
-          <button class="btn btn-secondary" onclick="reprocessSingleQuote('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Try to re-extract the quote by expanding the audio window by 20%">
-            🔄 Reprocess (+20% Audio)
+          <button class="btn btn-secondary" onclick="window.reprocessSingleQuote('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Riprova l'estrazione espandendo la finestra audio del 20%">
+            🔄 Riprocessa (+20% Audio)
           </button>
         </div>
       </div>
     `;
-    
+
     return card;
   }
 }
