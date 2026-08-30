@@ -2,6 +2,20 @@
 
 Tutti i cambiamenti significativi a questo progetto saranno documentati in questo file.
 
+## [3.2.0] - 2026-08-30
+
+### Aggiunto
+- **Ricerca Full-Text in Tempo Reale (Live Search)**: Barra di ricerca nella dashboard con scorciatoia `⌘+K` / `Esc`, ricerca multi-parola istantanea su citazioni, trascrizioni, titoli e autori/canali.
+- **Modulo FilterManager (OOP)**: Separazione della logica di filtro e ricerca in `filter_manager.js` (rispetto del limite <500 righe per file).
+- **Titoli e Canali Video YouTube Reali**: Recupero automatico dei metadati dei video (titolo e canale) tramite endpoint ufficiale oEmbed di YouTube.
+- **Supporto YouTube Shorts**: Supporto nativo per i link formato `/shorts/VIDEO_ID`.
+- **Automazione Condivisione (Apple Shortcuts & Google Apps Script)**: Webhook serverless per inserire automaticamente righe nel foglio da iPhone/Mac con minutaggio e pulizia automatica dell'URL.
+
+### Corretto
+- **Polling Indipendente per YouTube**: Il controllo del Google Sheet viene ora eseguito regolarmente a ogni ciclo di polling anche in assenza di nuovi bookmark Audiobookshelf.
+- **Compatibilità youtube-transcript-api**: Aggiornati i metodi di recupero sottotitoli con supporto ai metodi `fetch()` e `list()`.
+- **Cache-Busting Asset Statici**: Aggiunto versionamento `v2.3.0` agli import ES Modules per prevenire problemi di caching nel browser.
+
 ## [3.1.0] - 2026-08-30
 
 ### Aggiunto

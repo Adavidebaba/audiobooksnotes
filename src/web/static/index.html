@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Dashboard interattiva per visualizzare, verificare, filtrare ed esportare citazioni estratte da audiolibri e video YouTube.">
   <title>Audiobook & Video Notes Dashboard</title>
-  <link rel="stylesheet" href="style.css?v=2.2.0">
-  <link rel="stylesheet" href="components.css?v=2.2.0">
-  <link rel="stylesheet" href="tabs.css?v=2.2.0">
-  <link rel="stylesheet" href="loading.css?v=2.0.0">
+  <link rel="stylesheet" href="style.css?v=2.3.0">
+  <link rel="stylesheet" href="components.css?v=2.3.0">
+  <link rel="stylesheet" href="tabs.css?v=2.3.0">
+  <link rel="stylesheet" href="loading.css?v=2.3.0">
 </head>
 <body>
   <div class="container">
@@ -40,7 +40,23 @@
 
     <!-- Filters Section -->
     <section class="filters-section" aria-labelledby="filters-title">
-      <h2 id="filters-title" style="display:none;">Filtri</h2>
+      <h2 id="filters-title" style="display:none;">Filtri e Ricerca</h2>
+      
+      <!-- Real-Time Search Bar -->
+      <div class="search-bar-wrapper">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <input 
+          type="text" 
+          id="search-input" 
+          class="search-input" 
+          placeholder="Cerca parole chiave, citazioni, trascrizioni, titoli o autori..." 
+          aria-label="Cerca citazioni"
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <button type="button" id="btn-clear-search" class="btn-clear-search" title="Cancella ricerca" aria-label="Cancella testo di ricerca">✖</button>
+      </div>
+
       <div class="filters-grid">
         <!-- Source (Book / Video) Filter -->
         <div class="filter-group">
@@ -106,6 +122,6 @@
   </div>
 
   <!-- Include App Logic -->
-  <script type="module" src="app.js?v=2.2.0"></script>
+  <script type="module" src="app.js?v=2.3.0"></script>
 </body>
 </html>

@@ -1,14 +1,40 @@
+import json
+import urllib.request
 from typing import Optional, Dict, Any
 from youtube_transcript_api import YouTubeTranscriptApi
 
 
 class YouTubeTranscriptManager:
-    """Manager responsible for downloading YouTube subtitles and extracting text windows."""
+    """Manager responsible for downloading YouTube subtitles, metadata, and extracting text windows."""
 
     def __init__(self, pre_seconds: int = 60, post_seconds: int = 60) -> None:
         """Initializes the manager with default window sizes."""
         self.pre_seconds = pre_seconds
         self.post_seconds = post_seconds
+        self._api = YouTubeTranscriptApi() if callable(YouTubeTranscriptApi) else YouTubeTranscriptApi
+
+    @staticmethod
+    def get_video_metadata(video_id: str) -> Dict[str, str]:
+        """Fetches public video metadata (title, author/channel name) via YouTube oEmbed API."""
+        oembed_url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
+        try:
+            req = urllib.request.Request(
+                oembed_url, 
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            )
+            with urllib.request.urlopen(req, timeout=5) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode("utf-8"))
+                    return {
+                        "title": data.get("title", f"YouTube: {video_id}"),
+                        "author": data.get("author_name", "YouTube")
+                    }
+        except Exception:
+            pass
+        return {
+            "title": f"YouTube: {video_id}",
+            "author": "YouTube"
+        }
 
     def get_transcript_window(
         self,
@@ -29,11 +55,33 @@ class YouTubeTranscriptManager:
         effective_pre = pre_seconds if pre_seconds is not None else self.pre_seconds
         effective_post = post_seconds if post_seconds is not None else self.post_seconds
 
+        entries = []
         try:
-            transcript_entries = YouTubeTranscriptApi.get_transcript(
-                video_id,
-                languages=["it", "en", "en-US", "en-GB"]
-            )
+            # 1. Try instance fetch or class get_transcript
+            if hasattr(self._api, "fetch"):
+                try:
+                    entries = self._api.fetch(video_id, languages=["it", "en", "en-US", "en-GB"])
+                except Exception:
+                    # Fallback: list all available transcripts (including auto-generated in any language)
+                    if hasattr(self._api, "list"):
+                        transcript_list = self._api.list(video_id)
+                        transcript_obj = None
+                        try:
+                            transcript_obj = transcript_list.find_transcript(["it", "en", "en-US", "en-GB"])
+                        except Exception:
+                            for t in transcript_list:
+                                transcript_obj = t
+                                break
+                        if transcript_obj:
+                            entries = transcript_obj.fetch()
+            elif hasattr(YouTubeTranscriptApi, "get_transcript"):
+                entries = YouTubeTranscriptApi.get_transcript(
+                    video_id,
+                    languages=["it", "en", "en-US", "en-GB"]
+                )
+            else:
+                api_instance = YouTubeTranscriptApi()
+                entries = api_instance.fetch(video_id, languages=["it", "en", "en-US", "en-GB"])
         except Exception as exc:
             return {
                 "transcript": None,
@@ -41,7 +89,7 @@ class YouTubeTranscriptManager:
                 "error_message": f"Subtitles not available: {type(exc).__name__}: {str(exc)}"
             }
 
-        return self._extract_window(transcript_entries, timestamp, effective_pre, effective_post)
+        return self._extract_window(entries, timestamp, effective_pre, effective_post)
 
     def _extract_window(
         self,
@@ -56,12 +104,14 @@ class YouTubeTranscriptManager:
 
         window_entries = []
         for entry in entries:
-            entry_start = entry.get("start", 0)
-            entry_end = entry_start + entry.get("duration", 0)
+            entry_start = getattr(entry, "start", entry.get("start", 0) if isinstance(entry, dict) else 0)
+            entry_duration = getattr(entry, "duration", entry.get("duration", 0) if isinstance(entry, dict) else 0)
+            entry_text = getattr(entry, "text", entry.get("text", "") if isinstance(entry, dict) else "")
+            entry_end = entry_start + entry_duration
 
             # Include entry if it overlaps with the window
             if entry_end >= window_start and entry_start <= window_end:
-                window_entries.append(entry)
+                window_entries.append(entry_text)
 
         if not window_entries:
             return {
@@ -70,8 +120,7 @@ class YouTubeTranscriptManager:
                 "error_message": "No subtitle entries found in the specified time window."
             }
 
-        text_parts = [entry.get("text", "") for entry in window_entries]
-        combined_text = " ".join(text_parts).strip()
+        combined_text = " ".join(window_entries).strip()
 
         return {
             "transcript": combined_text if combined_text else None,

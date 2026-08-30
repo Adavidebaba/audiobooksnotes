@@ -53,33 +53,30 @@ class OrchestrationCoordinator:
             self.yt_sheet_client.close()
 
     def run_single_poll(self, force_bootstrap_all: bool = False) -> None:
-        """Retrieves and processes any new or failed bookmarks from Audiobookshelf."""
+        """Retrieves and processes any new or failed bookmarks from Audiobookshelf and YouTube."""
         with self.poll_lock:
             print("Polling Audiobookshelf per rilevare nuovi bookmark...")
             try:
                 current_bookmarks = self.abs_client.get_bookmarks()
+                unprocessed = self.state_mgr.get_unprocessed_bookmarks(
+                    current_bookmarks=current_bookmarks, 
+                    bootstrap_mode=self.config.bootstrap_mode, 
+                    bootstrap_since_iso=self.config.bootstrap_since_iso,
+                    ignore_bootstrap=force_bootstrap_all
+                )
+
+                if not unprocessed:
+                    print("Nessun nuovo bookmark da elaborare.")
+                else:
+                    print(f"Rilevati {len(unprocessed)} nuovi bookmark da elaborare.")
+                    for bm in unprocessed:
+                        self._process_bookmark_with_retry(bm)
             except Exception as e:
                 print(f"Errore durante il recupero dei bookmark da ABS: {e}")
-                return
 
-            unprocessed = self.state_mgr.get_unprocessed_bookmarks(
-                current_bookmarks=current_bookmarks, 
-                bootstrap_mode=self.config.bootstrap_mode, 
-                bootstrap_since_iso=self.config.bootstrap_since_iso,
-                ignore_bootstrap=force_bootstrap_all
-            )
-
-            if not unprocessed:
-                print("Nessun nuovo bookmark da elaborare.")
-                return
-
-            print(f"Rilevati {len(unprocessed)} nuovi bookmark da elaborare.")
-            for bm in unprocessed:
-                self._process_bookmark_with_retry(bm)
-
-        # YouTube polling (if enabled)
-        if self.yt_sheet_client:
-            self._poll_youtube_sheet()
+            # YouTube polling (if enabled)
+            if self.yt_sheet_client:
+                self._poll_youtube_sheet()
 
     def _process_bookmark_with_retry(self, bookmark: Dict[str, Any], max_retries: int = 3) -> None:
         """Attempts to process a bookmark, applying exponential backoff for transient failures."""
@@ -363,23 +360,28 @@ class OrchestrationCoordinator:
         # Build video URL for the store
         video_url = f"https://www.youtube.com/watch?v={video_id}&t={timestamp}"
 
-        # 1. Download subtitles
+        # 1. Fetch real video title and channel/author name
+        metadata = self.yt_transcript_mgr.get_video_metadata(video_id)
+        video_title = metadata.get("title", f"YouTube: {video_id}")
+        channel_name = metadata.get("author", "YouTube")
+
+        # 2. Download subtitles
         result = self.yt_transcript_mgr.get_transcript_window(video_id, timestamp)
         transcript = result.get("transcript")
         subtitles_available = result.get("available", False)
 
-        # 2. Extract quote (or create placeholder for manual entry)
+        # 3. Extract quote (or create placeholder for manual entry)
         if transcript and transcript.strip():
-            print(f"[YouTube] Sottotitoli disponibili. Estrazione citazione con LLM...")
+            print(f"[YouTube] Sottotitoli disponibili per '{video_title}'. Estrazione citazione con LLM...")
             quote_data = self.llm_mgr.extract_youtube_quote(
                 transcript=transcript,
-                video_title=f"YouTube Video {video_id}",
-                channel_name="YouTube",
+                video_title=video_title,
+                channel_name=channel_name,
                 timestamp=timestamp
             )
         else:
             error_reason = result.get("error_message", "Subtitles not available.")
-            print(f"[YouTube] Sottotitoli non disponibili: {error_reason}")
+            print(f"[YouTube] Sottotitoli non disponibili per '{video_title}': {error_reason}")
             quote_data = {
                 "quote": None,
                 "quote_original": None,
@@ -389,11 +391,11 @@ class OrchestrationCoordinator:
                              f"Please add the quote manually via Verify. ({error_reason})"
             }
 
-        # 3. Save to store
+        # 4. Save to store
         self.store_mgr.append_youtube_quote(
             video_id=video_id,
-            video_title=f"YouTube: {video_id}",
-            channel_name="YouTube",
+            video_title=video_title,
+            channel_name=channel_name,
             video_url=video_url,
             timestamp=timestamp,
             transcript=transcript or "",

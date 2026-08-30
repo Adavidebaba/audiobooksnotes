@@ -58,12 +58,15 @@ class YouTubeSheetClient:
             - https://www.youtube.com/watch?v=VIDEO_ID&t=SECONDS
             - https://youtube.com/watch?v=VIDEO_ID (no timestamp -> 0)
             - https://www.youtube.com/live/VIDEO_ID?t=SECONDS
+            - https://www.youtube.com/shorts/VIDEO_ID?t=SECONDS
 
         Returns:
             Dict with 'video_id' and 'timestamp' (int seconds), or None if not a valid YouTube URL.
         """
         try:
-            parsed = urlparse(url)
+            # Strip unwanted brackets, whitespace or quotes
+            cleaned_url = url.strip().strip("[]'\"").replace("[", "").replace("]", "")
+            parsed = urlparse(cleaned_url)
         except Exception:
             return None
 
@@ -76,7 +79,7 @@ class YouTubeSheetClient:
             query_params = parse_qs(parsed.query)
             timestamp = YouTubeSheetClient._extract_timestamp(query_params)
 
-        # Format: youtube.com/watch?v=VIDEO_ID or youtube.com/live/VIDEO_ID
+        # Format: youtube.com/watch?v=VIDEO_ID, /live/VIDEO_ID, or /shorts/VIDEO_ID
         elif parsed.hostname in ("www.youtube.com", "youtube.com", "m.youtube.com"):
             if parsed.path == "/watch":
                 query_params = parse_qs(parsed.query)
@@ -85,6 +88,10 @@ class YouTubeSheetClient:
                 timestamp = YouTubeSheetClient._extract_timestamp(query_params)
             elif parsed.path.startswith("/live/"):
                 video_id = parsed.path.split("/live/")[1].split("/")[0]
+                query_params = parse_qs(parsed.query)
+                timestamp = YouTubeSheetClient._extract_timestamp(query_params)
+            elif parsed.path.startswith("/shorts/"):
+                video_id = parsed.path.split("/shorts/")[1].split("/")[0].split("?")[0]
                 query_params = parse_qs(parsed.query)
                 timestamp = YouTubeSheetClient._extract_timestamp(query_params)
 

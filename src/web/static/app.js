@@ -2,9 +2,10 @@
  * AudiobookNotes Dashboard - AppCoordinator
  * Coordinates state, active tab, filtering, editing, and exports.
  */
-import { QuotesApiManager } from './api.js';
-import { QuotesUiManager } from './ui.js';
-import { ExportManager } from './export_manager.js';
+import { QuotesApiManager } from './api.js?v=2.3.0';
+import { QuotesUiManager } from './ui.js?v=2.3.0';
+import { ExportManager } from './export_manager.js?v=2.3.0';
+import { FilterManager } from './filter_manager.js?v=2.3.0';
 
 // State
 let quotesState = [];
@@ -17,6 +18,8 @@ const tabBtnAudiobooks = document.getElementById('tab-btn-audiobooks');
 const tabBtnYouTube = document.getElementById('tab-btn-youtube');
 const countAudiobooks = document.getElementById('count-audiobooks');
 const countYouTube = document.getElementById('count-youtube');
+const searchInput = document.getElementById('search-input');
+const btnClearSearch = document.getElementById('btn-clear-search');
 const labelFilterSource = document.getElementById('label-filter-source');
 const filterSourceSelect = document.getElementById('filter-book');
 const filterConfidenceSelect = document.getElementById('filter-confidence');
@@ -37,7 +40,7 @@ async function initApp() {
 }
 
 /**
- * Binds event listeners for tabs, filters, and modals.
+ * Binds event listeners for tabs, filters, search, and modals.
  */
 function bindEventListeners() {
   if (btnManualPoll) {
@@ -50,6 +53,24 @@ function bindEventListeners() {
   if (tabBtnYouTube) {
     tabBtnYouTube.addEventListener('click', () => switchTab('youtube'));
   }
+
+  // Real-time search listeners
+  if (searchInput) {
+    searchInput.addEventListener('input', handleSearchInput);
+  }
+  if (btnClearSearch) {
+    btnClearSearch.addEventListener('click', clearSearch);
+  }
+
+  // Global keyboard shortcuts (Cmd/Ctrl + K or '/' to search, Esc to clear)
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (searchInput) searchInput.focus();
+    } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+      clearSearch();
+    }
+  });
 
   if (filterSourceSelect) filterSourceSelect.addEventListener('change', renderQuotes);
   if (filterConfidenceSelect) filterConfidenceSelect.addEventListener('change', renderQuotes);
@@ -75,6 +96,29 @@ function bindEventListeners() {
       }
     }
   });
+}
+
+/**
+ * Handles real-time search input changes and updates clear button visibility.
+ */
+function handleSearchInput() {
+  if (btnClearSearch) {
+    const hasValue = searchInput && searchInput.value.trim().length > 0;
+    btnClearSearch.classList.toggle('visible', hasValue);
+  }
+  renderQuotes();
+}
+
+/**
+ * Clears search input and triggers re-render.
+ */
+function clearSearch() {
+  if (searchInput) {
+    searchInput.value = '';
+    if (btnClearSearch) btnClearSearch.classList.remove('visible');
+    searchInput.focus();
+  }
+  renderQuotes();
 }
 
 /**
@@ -134,33 +178,7 @@ function updateTabCounters() {
  * Populates source dropdown depending on the active tab.
  */
 function populateSourceFilter() {
-  if (!filterSourceSelect) return;
-
-  const currentSelection = filterSourceSelect.value;
-  const isAudiobooks = activeTab === 'audiobooks';
-  const filteredPool = quotesState.filter(q => isAudiobooks ? q.source_type !== 'youtube' : q.source_type === 'youtube');
-
-  const sourcesMap = new Map();
-  filteredPool.forEach(q => {
-    sourcesMap.set(q.libraryItemId, q.bookTitle);
-  });
-
-  filterSourceSelect.innerHTML = isAudiobooks
-    ? '<option value="all">Tutti i libri</option>'
-    : '<option value="all">Tutti i video</option>';
-
-  sourcesMap.forEach((title, id) => {
-    const option = document.createElement('option');
-    option.value = id;
-    option.textContent = title;
-    filterSourceSelect.appendChild(option);
-  });
-
-  if (sourcesMap.has(currentSelection)) {
-    filterSourceSelect.value = currentSelection;
-  } else {
-    filterSourceSelect.value = 'all';
-  }
+  FilterManager.populateSourceDropdown(quotesState, activeTab, filterSourceSelect);
 }
 
 /**
@@ -169,27 +187,13 @@ function populateSourceFilter() {
  * @returns {boolean}
  */
 function passesFilters(quote) {
-  const isAudiobooks = activeTab === 'audiobooks';
-  const isQuoteAudiobook = quote.source_type !== 'youtube';
-
-  // Tab filter match
-  if (isAudiobooks !== isQuoteAudiobook) return false;
-
-  const selectedSource = filterSourceSelect ? filterSourceSelect.value : 'all';
-  const selectedConfidence = filterConfidenceSelect ? filterConfidenceSelect.value : 'all';
-  const startDateStr = filterDateStart ? filterDateStart.value : '';
-  const endDateStr = filterDateEnd ? filterDateEnd.value : '';
-
-  if (selectedSource !== 'all' && quote.libraryItemId !== selectedSource) return false;
-  if (selectedConfidence !== 'all' && (quote.quote_confidence || '').toLowerCase() !== selectedConfidence) return false;
-
-  if (quote.createdAt) {
-    const quoteDate = new Date(quote.createdAt).toISOString().split('T')[0];
-    if (startDateStr && quoteDate < startDateStr) return false;
-    if (endDateStr && quoteDate > endDateStr) return false;
-  }
-
-  return true;
+  return FilterManager.passesFilters(quote, activeTab, {
+    sourceSelect: filterSourceSelect,
+    confidenceSelect: filterConfidenceSelect,
+    dateStartInput: filterDateStart,
+    dateEndInput: filterDateEnd,
+    searchInput: searchInput
+  });
 }
 
 /**

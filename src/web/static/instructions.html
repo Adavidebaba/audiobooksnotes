@@ -157,6 +157,15 @@
           </div>
         </div>
         <div class="help-step">
+          <h3>⚡ 1-Click Sharing from iPhone &amp; Mac (Apple Shortcuts)</h3>
+          <p>You can share YouTube links directly to your Google Sheet with a single tap from iOS or a keyboard shortcut on macOS:</p>
+          <ul style="color: var(--text-muted); font-size: 0.95rem; margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.7;">
+            <li><strong>Google Apps Script Webhook:</strong> Deploy a lightweight Web App inside your Google Sheet (via <em>Extensions &rarr; Apps Script</em>) that automatically appends rows to Column A and Column B.</li>
+            <li><strong>Apple Shortcuts (Comandi Rapidi):</strong> Create a shortcut accepting Safari web pages / URLs in the Share Sheet, prompt for an optional timestamp if missing, and send an HTTP GET to your Apps Script Webhook.</li>
+            <li><strong>Supported URL Formats:</strong> Standard videos (<code>watch?v=...</code>), short links (<code>youtu.be/...</code>), live streams (<code>/live/...</code>), and <strong>YouTube Shorts</strong> (<code>/shorts/...</code>).</li>
+          </ul>
+        </div>
+        <div class="help-step">
           <h3>Quick Setup (Optional in <code>.env</code>)</h3>
           <ul style="color: var(--text-muted); font-size: 0.95rem; margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.7;">
             <li><code>GOOGLE_SHEETS_API_KEY</code>: Google Cloud API Key with Google Sheets API enabled.</li>
