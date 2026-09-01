@@ -169,16 +169,10 @@ export class QuotesUiManager {
     const videoUrl = quote.video_url || '#';
     const videoTitle = this.escapeHtml(quote.bookTitle || 'Video YouTube');
     const channelName = this.escapeHtml(quote.bookAuthor || 'Canale YouTube');
-    const timeLabel = this.formatTimeLabel(quote.time || 0);
+    const isFullVideo = (quote.time === 0 || quote.time === undefined || quote.time === null || quote.time < 0);
+    const timeLabel = isFullVideo ? '🎬 Intero Video' : `▶️ ${this.formatTimeLabel(quote.time || 0)}`;
+    const timeTooltip = isFullVideo ? 'Apri il video su YouTube' : 'Apri il video su YouTube a questo minuto';
     const dateFormatted = this.formatDate(quote.createdAt);
-
-    const hasOriginalQuote = quote.quote_original && quote.quote_language && quote.quote_language !== 'it';
-    const originalQuoteBlock = hasOriginalQuote
-      ? `<div class="detail-block">
-           <h4>Citazione Originale (${this.escapeHtml(quote.quote_language.toUpperCase())})</h4>
-           <p>${this.escapeHtml(quote.quote_original)}</p>
-         </div>`
-      : '';
 
     card.innerHTML = `
       <div class="youtube-card-header">
@@ -187,8 +181,8 @@ export class QuotesUiManager {
           <h3 class="youtube-video-title">${videoTitle}</h3>
         </div>
         <div class="youtube-header-badges">
-          <a href="${this.escapeHtml(videoUrl)}" target="_blank" rel="noopener" class="youtube-time-link" title="Apri il video su YouTube a questo minuto">
-            ▶️ ${timeLabel}
+          <a href="${this.escapeHtml(videoUrl)}" target="_blank" rel="noopener" class="youtube-time-link" title="${timeTooltip}">
+            ${timeLabel}
           </a>
           <span class="badge ${badgeClass}" id="badge-val-${quote.libraryItemId}-${quote.createdAt}">${quote.quote_confidence || 'low'}</span>
           <button class="btn-edit-toggle" onclick="window.toggleEditMode('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Verifica o modifica la citazione">
@@ -225,7 +219,6 @@ export class QuotesUiManager {
         </div>
         
         <div class="details-grid" style="margin-top: 1.25rem;">
-          ${originalQuoteBlock}
           <div class="detail-block">
             <h4>Trascrizione Originale</h4>
             <p>${this.escapeHtml(quote.transcript || 'Nessuna trascrizione estratta.')}</p>

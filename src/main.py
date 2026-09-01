@@ -356,29 +356,44 @@ class OrchestrationCoordinator:
         video_id = link_data["video_id"]
         timestamp = link_data["timestamp"]
         raw_url = link_data["raw_url"]
+        is_full_video = timestamp <= 0
 
         # Build video URL for the store
-        video_url = f"https://www.youtube.com/watch?v={video_id}&t={timestamp}"
+        video_url = (
+            f"https://www.youtube.com/watch?v={video_id}"
+            if is_full_video
+            else f"https://www.youtube.com/watch?v={video_id}&t={timestamp}"
+        )
 
         # 1. Fetch real video title and channel/author name
         metadata = self.yt_transcript_mgr.get_video_metadata(video_id)
         video_title = metadata.get("title", f"YouTube: {video_id}")
         channel_name = metadata.get("author", "YouTube")
 
-        # 2. Download subtitles
-        result = self.yt_transcript_mgr.get_transcript_window(video_id, timestamp)
+        # 2. Download subtitles (full video or window around timestamp)
+        if is_full_video:
+            result = self.yt_transcript_mgr.get_full_transcript(video_id)
+        else:
+            result = self.yt_transcript_mgr.get_transcript_window(video_id, timestamp)
         transcript = result.get("transcript")
-        subtitles_available = result.get("available", False)
 
-        # 3. Extract quote (or create placeholder for manual entry)
+        # 3. Extract quote or full video insights (or placeholder for manual entry)
         if transcript and transcript.strip():
-            print(f"[YouTube] Sottotitoli disponibili per '{video_title}'. Estrazione citazione con LLM...")
-            quote_data = self.llm_mgr.extract_youtube_quote(
-                transcript=transcript,
-                video_title=video_title,
-                channel_name=channel_name,
-                timestamp=timestamp
-            )
+            if is_full_video:
+                print(f"[YouTube] Sottotitoli disponibili per '{video_title}'. Estrazione insight intero video con LLM...")
+                quote_data = self.llm_mgr.extract_youtube_full_video_insights(
+                    transcript=transcript,
+                    video_title=video_title,
+                    channel_name=channel_name
+                )
+            else:
+                print(f"[YouTube] Sottotitoli disponibili per '{video_title}'. Estrazione citazione con LLM...")
+                quote_data = self.llm_mgr.extract_youtube_quote(
+                    transcript=transcript,
+                    video_title=video_title,
+                    channel_name=channel_name,
+                    timestamp=timestamp
+                )
         else:
             error_reason = result.get("error_message", "Subtitles not available.")
             print(f"[YouTube] Sottotitoli non disponibili per '{video_title}': {error_reason}")

@@ -109,12 +109,10 @@ class LlmManager:
             "4. CONFIDENCE: Usa 'high' solo se c'è una singola frase chiaramente isolabile. "
             "Usa 'medium' se ci sono ambiguità. Usa 'low' se il testo è incoerente.\n"
             "5. TRADUZIONE OBBLIGATORIA: Se la citazione è in una lingua diversa dall'italiano "
-            "(tipicamente inglese), DEVI tradurla in italiano fluido e naturale.\n\n"
+            "(tipicamente inglese), DEVI tradurla in italiano fluido e naturale nel campo 'quote'.\n\n"
             "Devi rispondere ESCLUSIVAMENTE in formato JSON con la seguente struttura:\n"
             "{\n"
             "  \"quote\": \"citazione TRADOTTA in italiano (o originale se già in italiano) oppure null\",\n"
-            "  \"quote_original\": \"citazione nella lingua originale del video, oppure null\",\n"
-            "  \"quote_language\": \"codice lingua originale (es. 'en', 'it', 'es')\",\n"
             "  \"confidence\": \"high|medium|low\",\n"
             "  \"reasoning\": \"Spiega il motivo logico. SE confidence è medium/low, TRASCRIVI QUI l'alternativa.\"\n"
             "}"
@@ -150,14 +148,11 @@ class LlmManager:
         """Calls the OpenAI Chat API to extract a quote from YouTube subtitles.
 
         Returns:
-            A dictionary containing 'quote', 'quote_original', 'quote_language',
-            'confidence', and 'reasoning'.
+            A dictionary containing 'quote', 'confidence', and 'reasoning'.
         """
         if not transcript or not transcript.strip():
             return {
                 "quote": None,
-                "quote_original": None,
-                "quote_language": "",
                 "confidence": "low",
                 "reasoning": "La trascrizione è vuota."
             }
@@ -176,13 +171,116 @@ class LlmManager:
             )
 
             result_text = response.choices[0].message.content
-            return json.loads(result_text)
+            parsed = json.loads(result_text)
+            return {
+                "quote": parsed.get("quote"),
+                "confidence": parsed.get("confidence", "high"),
+                "reasoning": parsed.get("reasoning", "")
+            }
 
         except Exception as e:
             return {
                 "quote": None,
-                "quote_original": None,
-                "quote_language": "",
                 "confidence": "low",
                 "reasoning": f"Errore nell'estrazione LLM YouTube: {str(e)}"
             }
+
+    def _get_youtube_full_video_system_prompt(self) -> str:
+        """Returns the system instructions for extracting core insights via a verbatim super-cut montage."""
+        return (
+            "Sei un assistente specializzato nell'estrazione e nel montaggio dei passaggi più importanti, "
+            "illuminanti e memorabili da trascrizioni complete di video YouTube.\n\n"
+            "Il tuo obiettivo NON è fare un riassunto descrittivo o in terza persona (è CATEGORICAMENTE "
+            "VIETATO usare formule come 'In questo video l'autore spiega', 'L'oratore afferma che', 'Il tema centrale è').\n"
+            "Il tuo compito è creare un 'SUPER-CUT' (un montaggio organico, fluido e continuo in prima persona / voce diretta) "
+            "estrapolando esclusivamente ciò che vale la pena RICORDARE e interiorizzare a lungo termine.\n\n"
+            "Linee guida per la selezione dei contenuti:\n"
+            "1. CONCENTRAZIONE SUL FULCRO MEMORABILE: Isola i concetti cardine, le lezioni chiave e le epifanie del discorso. "
+            "Non includere dettagli secondari, aneddoti riempitivi o ripetizioni.\n"
+            "2. FEDELTÀ ASSOLUTA ALLE FRASI E CONCETTI POTENTI: Quando individui frasi aforistiche, metafore folgoranti o formulazioni "
+            "particolarmente potenti ed evocative, RIPORTALE FEDELMENTE. Preserva le parole esatte e la loro forza d'impatto originale, "
+            "senza diluirle o indebolirle con parafrasi generiche.\n"
+            "3. TAGLIO DEI PREAMBOLI: Salta le lunghe premesse narrative (come l'autore ha condotto la ricerca, divagazioni storiche/personali, "
+            "riflessioni sul linguaggio). Apri direttamente sul cuore del tema, introducendolo con al massimo una singola frase di inquadramento naturale.\n"
+            "4. CHIUSURA INCISIVA: Concludi con il takeaway finale o la morale più potente, evitando di concatenare molteplici paragrafi "
+            "di riflessioni filosofiche a catena o parafrasi diluite.\n"
+            "5. VOCE DIRETTA E FLUSSO NATURALE: Mantieni il testo come un monologo vivo, potente e scorrevole, "
+            "rispettando il registro autentico del creator senza ricorrere a elenchi puntati o schematismi artificiali.\n"
+            "6. TRADUZIONE NATURALE: Se il video è in una lingua diversa dall'italiano (es. inglese), "
+            "componi direttamente il montaggio in italiano fluido, naturale ed espressivo nel campo 'quote', preservando il ritmo e le metafore originali.\n\n"
+            "Devi rispondere ESCLUSIVAMENTE in formato JSON con la seguente struttura:\n"
+            "{\n"
+            "  \"quote\": \"montaggio fluido delle frasi e concetti memorabili TRADOTTO in italiano (o originale se già in italiano)\",\n"
+            "  \"confidence\": \"high|medium|low\",\n"
+            "  \"reasoning\": \"Breve spiegazione del motivo per cui questi passaggi rappresentano il cuore memorabile del video.\"\n"
+            "}"
+        )
+
+    def _get_youtube_full_video_user_prompt(
+        self,
+        transcript: str,
+        video_title: str,
+        channel_name: str
+    ) -> str:
+        """Constructs the user message for full YouTube video insight extraction."""
+        # Safety cap at 150k characters (~35k tokens, ~2-3 hours of speech)
+        capped_transcript = transcript[:150000]
+        if len(transcript) > 150000:
+            capped_transcript += "\n[...Trascrizione troncata per limiti di sicurezza...]"
+
+        return (
+            f"Dettagli Video YouTube (Intero Video):\n"
+            f"- Titolo: {video_title}\n"
+            f"- Canale: {channel_name}\n\n"
+            f"Trascrizione integrale dei sottotitoli del video:\n"
+            f"\"\"\"\n{capped_transcript}\n\"\"\"\n"
+        )
+
+    def extract_youtube_full_video_insights(
+        self,
+        transcript: str,
+        video_title: str,
+        channel_name: str
+    ) -> Dict[str, Any]:
+        """Calls the OpenAI Chat API to extract full video insights and core lessons.
+
+        Returns:
+            A dictionary containing 'quote', 'confidence', and 'reasoning'.
+        """
+        if not transcript or not transcript.strip():
+            return {
+                "quote": None,
+                "confidence": "low",
+                "reasoning": "La trascrizione del video è vuota."
+            }
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": self._get_youtube_full_video_system_prompt()},
+                    {"role": "user", "content": self._get_youtube_full_video_user_prompt(
+                        transcript, video_title, channel_name
+                    )}
+                ],
+                temperature=0.2
+            )
+
+            result_text = response.choices[0].message.content
+            parsed = json.loads(result_text)
+            return {
+                "quote": parsed.get("quote"),
+                "confidence": parsed.get("confidence", "high"),
+                "reasoning": parsed.get("reasoning", "")
+            }
+
+        except Exception as e:
+            return {
+                "quote": None,
+                "confidence": "low",
+                "reasoning": f"Errore nell'estrazione LLM degli insight del video: {str(e)}"
+            }
+
+
+

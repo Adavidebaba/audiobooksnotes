@@ -36,6 +36,65 @@ class YouTubeTranscriptManager:
             "author": "YouTube"
         }
 
+    def _fetch_entries(self, video_id: str) -> list:
+        """Fetches raw subtitle entries from YouTube Transcript API with language fallbacks."""
+        if hasattr(self._api, "fetch"):
+            try:
+                return self._api.fetch(video_id, languages=["it", "en", "en-US", "en-GB"])
+            except Exception:
+                if hasattr(self._api, "list"):
+                    transcript_list = self._api.list(video_id)
+                    try:
+                        transcript_obj = transcript_list.find_transcript(["it", "en", "en-US", "en-GB"])
+                    except Exception:
+                        transcript_obj = next(iter(transcript_list), None)
+                    if transcript_obj:
+                        return transcript_obj.fetch()
+        elif hasattr(YouTubeTranscriptApi, "get_transcript"):
+            return YouTubeTranscriptApi.get_transcript(
+                video_id,
+                languages=["it", "en", "en-US", "en-GB"]
+            )
+        else:
+            api_instance = YouTubeTranscriptApi()
+            return api_instance.fetch(video_id, languages=["it", "en", "en-US", "en-GB"])
+        return []
+
+    def get_full_transcript(self, video_id: str) -> Dict[str, Any]:
+        """Downloads complete subtitles for the entire video.
+
+        Returns:
+            Dict with keys 'transcript', 'available', and 'error_message'.
+        """
+        try:
+            entries = self._fetch_entries(video_id)
+        except Exception as exc:
+            return {
+                "transcript": None,
+                "available": False,
+                "error_message": f"Subtitles not available: {type(exc).__name__}: {str(exc)}"
+            }
+
+        if not entries:
+            return {
+                "transcript": None,
+                "available": False,
+                "error_message": "No subtitle entries found for this video."
+            }
+
+        all_text_parts = []
+        for entry in entries:
+            text = getattr(entry, "text", entry.get("text", "") if isinstance(entry, dict) else "")
+            if text and text.strip():
+                all_text_parts.append(text.strip())
+
+        combined = " ".join(all_text_parts).strip()
+        return {
+            "transcript": combined if combined else None,
+            "available": bool(combined),
+            "error_message": "" if combined else "Subtitles empty."
+        }
+
     def get_transcript_window(
         self,
         video_id: str,
@@ -46,42 +105,13 @@ class YouTubeTranscriptManager:
         """Downloads subtitles and extracts text around the given timestamp.
 
         Returns:
-            Dict with keys:
-                - 'transcript': str or None (the extracted text window)
-                - 'available': bool (whether subtitles were found)
-                - 'error_message': str (description if subtitles unavailable)
-                - 'video_title': str (empty, populated later by caller)
+            Dict with keys 'transcript', 'available', and 'error_message'.
         """
         effective_pre = pre_seconds if pre_seconds is not None else self.pre_seconds
         effective_post = post_seconds if post_seconds is not None else self.post_seconds
 
-        entries = []
         try:
-            # 1. Try instance fetch or class get_transcript
-            if hasattr(self._api, "fetch"):
-                try:
-                    entries = self._api.fetch(video_id, languages=["it", "en", "en-US", "en-GB"])
-                except Exception:
-                    # Fallback: list all available transcripts (including auto-generated in any language)
-                    if hasattr(self._api, "list"):
-                        transcript_list = self._api.list(video_id)
-                        transcript_obj = None
-                        try:
-                            transcript_obj = transcript_list.find_transcript(["it", "en", "en-US", "en-GB"])
-                        except Exception:
-                            for t in transcript_list:
-                                transcript_obj = t
-                                break
-                        if transcript_obj:
-                            entries = transcript_obj.fetch()
-            elif hasattr(YouTubeTranscriptApi, "get_transcript"):
-                entries = YouTubeTranscriptApi.get_transcript(
-                    video_id,
-                    languages=["it", "en", "en-US", "en-GB"]
-                )
-            else:
-                api_instance = YouTubeTranscriptApi()
-                entries = api_instance.fetch(video_id, languages=["it", "en", "en-US", "en-GB"])
+            entries = self._fetch_entries(video_id)
         except Exception as exc:
             return {
                 "transcript": None,

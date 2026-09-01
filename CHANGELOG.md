@@ -2,7 +2,14 @@
 
 Tutti i cambiamenti significativi a questo progetto saranno documentati in questo file.
 
-## [3.2.0] - 2026-08-30
+## [3.3.0] - 2026-09-01
+
+### Aggiunto
+- **Sintesi ed Estrazione Insight Intero Video YouTube**: Supporto per link YouTube senza timestamp o con timestamp 0, con download integrale dei sottotitoli (`get_full_transcript`) e badge UI dedicato `🎬 Intero Video`.
+- **Prompt Super-Cut Memorabile**: Prompt LLM ottimizzato per isolare solo i concetti cardine e le epifanie memorabili, con fedeltà alle formulazioni potenti/aforistiche, eliminazione dei preamboli narrativi prolissi e chiusura incisiva.
+
+### Modificato
+- **UI Card YouTube**: Rimozione dei blocchi ridondanti e gestione differenziata del link timestamp per video interi vs timestamp specifici.
 
 ### Aggiunto
 - **Ricerca Full-Text in Tempo Reale (Live Search)**: Barra di ricerca nella dashboard con scorciatoia `⌘+K` / `Esc`, ricerca multi-parola istantanea su citazioni, trascrizioni, titoli e autori/canali.
