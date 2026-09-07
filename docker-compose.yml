@@ -1,13 +1,27 @@
 services:
   audiobooknotes:
-    build: .
+    image: ghcr.io/adavidebaba/audiobooksnotes:latest
+    pull_policy: always
     container_name: audiobooknotes
     restart: unless-stopped
     ports:
+      # Accesso diretto di fallback tramite IP LAN o VPN Tailscale
       - "7777:7777"
     volumes:
-      - ./data:/data
+      # Percorso assoluto su SSD esterno USB (secondo guida net.md)
+      - /volumeUSB1/usbshare/docker/audiobooknotes/data:/data
+      # Sincronizzazione dell'orario con l'host Synology DSM
+      - /etc/localtime:/etc/localtime:ro
     env_file:
       - .env
     environment:
       - PYTHONUNBUFFERED=1
+      - TZ=Europe/Rome
+    labels:
+      # === TRAEFIK REVERSE PROXY CONFIGURATION ===
+      - "traefik.enable=true"
+      - "traefik.http.routers.citazioni.rule=Host(`citazioni.adavide.com`)"
+      - "traefik.http.routers.citazioni.entrypoints=websecure"
+      - "traefik.http.routers.citazioni.tls.certresolver=cloudflare"
+      # Porta INTERNA del container (porta su cui ascolta Uvicorn/FastAPI)
+      - "traefik.http.services.citazioni.loadbalancer.server.port=7777"

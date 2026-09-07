@@ -2,6 +2,16 @@
 
 Tutti i cambiamenti significativi a questo progetto saranno documentati in questo file.
 
+## [3.4.0] - 2026-09-07
+
+### Aggiunto
+- **Configurazione Synology NAS (Guida net.md)**: `docker-compose.yml` ottimizzato per NAS (storage SSD esterno `/volumeUSB1/usbshare/docker/audiobooknotes/data`, Traefik reverse proxy per `citazioni.adavide.com` con SSL Let's Encrypt Cloudflare).
+- **CI/CD GitHub Actions su GHCR**: Workflow `.github/workflows/deploy.yml` per compilazione e push automatico dell'immagine Docker su `ghcr.io/adavidebaba/audiobooksnotes:latest` su ogni push su `main`.
+- **Template Ambiente NAS**: File `.env.nas.example` preconfigurato con `ABS_URL=https://audiobooks.adavide.com`.
+
+### Modificato
+- **Docker Compose Unificato**: Sostituito il vecchio `docker-compose.yml` locale con la versione NAS basata su immagine GHCR (`pull_policy: always`). Rimosso script locale non più necessario.
+
 ## [3.3.0] - 2026-09-01
 
 ### Aggiunto
