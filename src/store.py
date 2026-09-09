@@ -193,9 +193,10 @@ class StoreManager:
         library_item_id: str, 
         created_at: int, 
         new_quote: str, 
-        new_confidence: str
+        new_confidence: str,
+        new_reasoning: str = None
     ) -> bool:
-        """Updates the text and confidence level of a specific quote in a book's JSON file."""
+        """Updates the text, confidence level, and optional reasoning of a quote in a book's JSON file."""
         file_path = self._find_book_file(library_item_id)
         if not file_path:
             return False
@@ -211,6 +212,8 @@ class StoreManager:
             if bookmark.get("createdAt") == created_at:
                 bookmark["quote"] = new_quote
                 bookmark["quote_confidence"] = new_confidence
+                if new_reasoning is not None:
+                    bookmark["quote_reasoning"] = new_reasoning
                 updated = True
                 break
                 
@@ -264,6 +267,7 @@ class StoreManager:
                     "libraryItemId": library_item_id,
                     "bookTitle": book_data.get("title", "Titolo Sconosciuto"),
                     "bookAuthor": book_data.get("author", "Autore Sconosciuto"),
+                    "source_type": book_data.get("source_type", "audiobook"),
                     **bookmark
                 }
         return None

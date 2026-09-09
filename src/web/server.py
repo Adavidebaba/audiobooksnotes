@@ -2,7 +2,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from src.store import StoreManager
 
@@ -27,6 +27,19 @@ class QuoteReprocessRequest(BaseModel):
     createdAt: int
 
 
+class PromptsUpdateRequest(BaseModel):
+    """Pydantic model representing a request to update prompts and model configuration."""
+    model_name: Optional[str] = None
+    audiobooks_system_prompt: Optional[str] = None
+    youtube_system_prompt: Optional[str] = None
+    youtube_full_video_system_prompt: Optional[str] = None
+
+
+class PromptsResetRequest(BaseModel):
+    """Pydantic model representing a request to reset prompts."""
+    target_key: Optional[str] = None
+
+
 class WebServer:
     """Class responsible for initializing, routing, and exposing the FastAPI server."""
 
@@ -34,6 +47,7 @@ class WebServer:
         """Initializes the WebServer with the OrchestrationCoordinator instance."""
         self.coordinator = coordinator
         self.store_mgr = coordinator.store_mgr
+        self.prompt_mgr = coordinator.prompt_mgr
         self.app = FastAPI(
             title="AudiobookNotes Dashboard",
             description="Web interface to view, filter, edit, and delete audiobooks notes and quotes."
@@ -98,6 +112,38 @@ class WebServer:
                     detail="Impossibile rielaborare la citazione. Controlla la connessione ad Audiobookshelf o i log del server."
                 )
             return updated_quote
+
+        @self.app.post("/api/quotes/re-extract-llm")
+        def re_extract_quote_llm(request: QuoteReprocessRequest) -> Dict[str, Any]:
+            """API endpoint to re-run only the LLM prompt extraction on existing transcript."""
+            updated_quote = self.coordinator.re_extract_quote_llm(
+                library_item_id=request.libraryItemId,
+                created_at=request.createdAt
+            )
+            if not updated_quote:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Impossibile ri-estrarre la citazione con LLM. Verifica che la trascrizione sia presente."
+                )
+            return updated_quote
+
+        @self.app.get("/api/prompts")
+        def get_prompts() -> Dict[str, Any]:
+            """API endpoint to retrieve current prompts, active model and default values."""
+            return self.prompt_mgr.get_all_prompts()
+
+        @self.app.put("/api/prompts")
+        def update_prompts(request: PromptsUpdateRequest) -> Dict[str, Any]:
+            """API endpoint to update LLM prompts and model name."""
+            updates = {k: v for k, v in request.model_dump().items() if v is not None}
+            updated = self.prompt_mgr.update_prompts(updates)
+            return {"status": "success", "message": "Prompt salvati con successo.", "prompts": updated}
+
+        @self.app.post("/api/prompts/reset")
+        def reset_prompts(request: PromptsResetRequest = PromptsResetRequest()) -> Dict[str, Any]:
+            """API endpoint to reset prompts to defaults."""
+            reset_data = self.prompt_mgr.reset_to_defaults(target_key=request.target_key)
+            return {"status": "success", "message": "Prompt ripristinati ai valori di fabbrica.", "prompts": reset_data}
 
         # Serve frontend static assets (HTML, CSS, JS)
         static_dir = Path(__file__).parent / "static"

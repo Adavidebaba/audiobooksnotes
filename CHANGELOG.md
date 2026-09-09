@@ -2,6 +2,20 @@
 
 Tutti i cambiamenti significativi a questo progetto saranno documentati in questo file.
 
+## [3.5.0] - 2026-09-10
+
+### Aggiunto
+- **Configurazione Prompt & Modelli LLM (`prompts.html`)**: Nuova schermata web dedicata per visualizzare, modificare, salvare e ripristinare i System Prompt (Audiolibri, YouTube Timestamp, YouTube Intero Video) e il modello OpenRouter configurato.
+- **Persistenza Dinamica (`PromptManager`)**: I prompt personalizzati e il modello LLM vengono salvati su `data/prompts.json` (sopravvivono ai riavvii dei container) con fallback automatico e ripristino dei default.
+- **Pulsante "✨ Riprova LLM" nella Scheda Citazione**: Permette di ri-eseguire l'estrazione solo-LLM all'istante sulla trascrizione esistente con il prompt attualmente salvato, senza riscaricare l'audio o rifare la trascrizione vocale Whisper.
+- **Feedback Asincrono in Tempo Reale**: Durante la ri-estrazione, il pulsante viene disabilitato e compare un banner animato chiaro che invita a non ricaricare la pagina; i risultati (citazione, confidenza, motivazione) vengono aggiornati all'istante a schermo con notifica toast.
+- **Endpoint API REST**:
+  - `GET /api/prompts`: restituisce la configurazione attuale e i default di fabbrica.
+  - `PUT /api/prompts`: aggiorna e salva i prompt e il modello attivo.
+  - `POST /api/prompts/reset`: ripristina un prompt specifico o tutti i default.
+  - `POST /api/quotes/re-extract-llm`: ri-estrae la citazione con LLM sulla trascrizione esistente.
+- **Modularizzazione Architetturale**: Creazione delle classi `QuoteReprocessor` e `ReprocessManager` e del foglio di stile `reprompt.css` per mantenere il codice orientato agli oggetti e rigorosamente sotto le 500 righe per file.
+
 ## [3.4.0] - 2026-09-07
 
 ### Aggiunto

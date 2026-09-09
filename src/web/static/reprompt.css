@@ -1,0 +1,57 @@
+/* ═══════════════════════════════════════════════════ */
+/*  Reprompt Status Banner & Button Styles             */
+/* ═══════════════════════════════════════════════════ */
+
+.btn-reprompt {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  color: #c4b5fd;
+  transition: var(--transition-smooth);
+}
+
+.btn-reprompt:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.3);
+  color: #fff;
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.3);
+}
+
+.btn-reprompt:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+.reprompt-status-banner {
+  margin-top: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: #c4b5fd;
+  animation: reprompt-pulse 2s infinite;
+}
+
+.reprompt-status-banner.success {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+  animation: none;
+}
+
+.reprompt-status-banner.error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  animation: none;
+}
+
+@keyframes reprompt-pulse {
+  0%, 100% { border-color: rgba(139, 92, 246, 0.25); }
+  50% { border-color: rgba(139, 92, 246, 0.7); box-shadow: 0 0 10px rgba(139, 92, 246, 0.2); }
+}

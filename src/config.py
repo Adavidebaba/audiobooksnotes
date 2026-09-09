@@ -55,3 +55,4 @@ class ConfigManager:
         self.books_dir = self.data_dir / "books"
         self.books_dir.mkdir(parents=True, exist_ok=True)
         self.state_file_path = self.data_dir / "state.json"
+        self.prompts_file_path = self.data_dir / "prompts.json"

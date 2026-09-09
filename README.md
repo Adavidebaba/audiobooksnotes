@@ -124,3 +124,10 @@ La funzionalità è **completamente opzionale**: se queste variabili non sono co
 * Se desideri rielaborare da zero l'intero database locale (ad esempio per caricare tutti i bookmark storici dopo aver aggiornato la lingua o le impostazioni nel file `.env`), clicca sul pulsante **"🔄 Regenerate Database"** in alto a destra nell'header.
 * Ti verranno chieste due conferme di sicurezza consecutive per evitare azzeramenti involontari e avvisarti del potenziale consumo di crediti API OpenRouter.
 * Una volta confermato, il database locale verrà ricostruito in background e la dashboard caricherà gradualmente le citazioni man mano che vengono processate.
+
+### 7. Configurazione Prompt e Modelli LLM (`⚙️ Prompt LLM`)
+* Cliccando sul pulsante **"⚙️ Prompt LLM"** nell'header puoi personalizzare le istruzioni fornite all'Intelligenza Artificiale:
+  * **Modello OpenRouter**: Modifica il modello attivo (es. `openrouter/auto`, `anthropic/claude-3.5-sonnet`, `google/gemini-2.5-flash`, `openai/gpt-4o-mini`).
+  * **System Prompt Personalizzabili**: Modifica le istruzioni per l'estrazione da Audiolibri, da timestamp YouTube o la sintesi super-cut per l'intero video.
+  * **Salvataggio e Ripristino**: I prompt sono salvati in modo persistente in `data/prompts.json` e possono essere ripristinati ai valori originali di fabbrica in qualsiasi momento.
+  * **Pulsante "✨ Riprova LLM"**: In fase di verifica di qualsiasi citazione puoi cliccare su *"✨ Riprova LLM"* per testare subito l'effetto dei prompt aggiornati sulla trascrizione esistente in tempo reale, senza attendere né riscaricare l'audio.

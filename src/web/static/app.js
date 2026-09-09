@@ -2,10 +2,11 @@
  * AudiobookNotes Dashboard - AppCoordinator
  * Coordinates state, active tab, filtering, editing, and exports.
  */
-import { QuotesApiManager } from './api.js?v=2.3.0';
-import { QuotesUiManager } from './ui.js?v=2.3.0';
-import { ExportManager } from './export_manager.js?v=2.3.0';
-import { FilterManager } from './filter_manager.js?v=2.3.0';
+import { QuotesApiManager } from './api.js?v=2.4.0';
+import { QuotesUiManager } from './ui.js?v=2.4.0';
+import { ExportManager } from './export_manager.js?v=2.4.0';
+import { FilterManager } from './filter_manager.js?v=2.4.0';
+import { ReprocessManager } from './reprocess_manager.js?v=2.4.0';
 
 // State
 let quotesState = [];
@@ -409,35 +410,17 @@ async function executeDeleteQuote() {
 }
 
 window.reprocessSingleQuote = async function(libraryItemId, createdAt, btn) {
-  const card = document.getElementById(`quote-card-${libraryItemId}-${createdAt}`);
-  if (!card) return;
+  const result = await ReprocessManager.handleAudioReprocess(
+    libraryItemId, createdAt, btn, quotesState, updateTabCounters
+  );
+  showToast(result.message, result.success ? 'success' : 'danger');
+};
 
-  const confirmReprocess = confirm("Sei sicuro di voler riestrarre questa citazione?\n\nVerrà scaricata una finestra audio più ampia del 20%, rieseguito Whisper e interrogato l'LLM.");
-  if (!confirmReprocess) return;
-
-  card.classList.add('card-loading');
-  const originalText = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = '🔄 Riprocessamento...';
-
-  try {
-    const updatedQuote = await QuotesApiManager.reprocessSingleQuote(libraryItemId, createdAt);
-    const index = quotesState.findIndex(q => q.libraryItemId === libraryItemId && q.createdAt === createdAt);
-    if (index !== -1) quotesState[index] = updatedQuote;
-
-    const newCard = QuotesUiManager.createQuoteCard(updatedQuote);
-    card.parentNode.replaceChild(newCard, card);
-    newCard.classList.add('editing');
-    const newBtn = newCard.querySelector('.btn-edit-toggle');
-    if (newBtn) newBtn.innerHTML = '✕ Chiudi';
-
-    showToast('Citazione riestratta con successo!', 'success');
-  } catch (error) {
-    showToast(`Errore: ${error.message}`, 'danger');
-    card.classList.remove('card-loading');
-    btn.disabled = false;
-    btn.innerHTML = originalText;
-  }
+window.reExtractQuoteLlm = async function(libraryItemId, createdAt, btn) {
+  const result = await ReprocessManager.handleLlmReprompt(
+    libraryItemId, createdAt, btn, quotesState
+  );
+  showToast(result.message, result.success ? 'success' : 'danger');
 };
 
 // Start

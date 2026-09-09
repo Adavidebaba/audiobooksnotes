@@ -12,8 +12,10 @@ from src.abs_client import AbsClientManager
 from src.state import StateManager
 from src.audio import AudioManager
 from src.stt import SttManager
+from src.prompt_manager import PromptManager
 from src.llm import LlmManager
 from src.store import StoreManager
+from src.quote_reprocessor import QuoteReprocessor
 from src.web.server import WebServer
 from src.youtube_sheet_client import YouTubeSheetClient
 from src.youtube_transcript import YouTubeTranscriptManager
@@ -28,8 +30,18 @@ class OrchestrationCoordinator:
         self.state_mgr = StateManager(config.state_file_path)
         self.audio_mgr = AudioManager(config.abs_url, config.abs_token, config.data_dir / "tmp")
         self.stt_mgr = SttManager(config.openrouter_api_key, config.openrouter_stt_model)
-        self.llm_mgr = LlmManager(config.openrouter_api_key, config.openrouter_llm_model)
+        self.prompt_mgr = PromptManager(config.prompts_file_path, default_model=config.openrouter_llm_model)
+        self.llm_mgr = LlmManager(config.openrouter_api_key, config.openrouter_llm_model, prompt_manager=self.prompt_mgr)
         self.store_mgr = StoreManager(config.books_dir)
+        self.quote_reprocessor = QuoteReprocessor(
+            store_mgr=self.store_mgr,
+            llm_mgr=self.llm_mgr,
+            audio_mgr=self.audio_mgr,
+            stt_mgr=self.stt_mgr,
+            abs_client=self.abs_client,
+            state_mgr=self.state_mgr,
+            config=self.config
+        )
         self.poll_lock = threading.RLock()
 
         # YouTube (optional)
@@ -199,110 +211,12 @@ class OrchestrationCoordinator:
     def reprocess_single_quote(self, library_item_id: str, created_at: int) -> Dict[str, Any] | None:
         """Reprocesses a single quote with 20% expanded audio window, updates store and state."""
         with self.poll_lock:
-            print(f"\n=== RIPROCESSO SINGOLA CITAZIONE RICHIESTO: {library_item_id} (createdAt: {created_at}) ===")
-            
-            # 1. Retrieve current quote details to extract the timing and window
-            current_quote = self.store_mgr.get_single_quote(library_item_id, created_at)
-            if not current_quote:
-                print(f"[Errore] Citazione non trovata nello store.")
-                return None
-                
-            current_time = current_quote.get("time", 0.0)
-            current_title = current_quote.get("title", "")
-            
-            # 2. Extract current window size or fall back to default
-            current_window = current_quote.get("audio_window", {"pre": 30, "post": 30})
-            current_pre = current_window.get("pre", 30)
-            current_post = current_window.get("post", 30)
-            
-            # 3. Scale window by +20% (progressive expansion)
-            new_pre = int(round(current_pre * 1.2))
-            new_post = int(round(current_post * 1.2))
-            
-            print(f"Finestra precedente: pre={current_pre}s, post={current_post}s -> Nuova (+20%): pre={new_pre}s, post={new_post}s")
-            
-            # 4. Fetch metadata from ABS
-            try:
-                meta = self.abs_client.get_item_metadata(library_item_id)
-                media = meta.get("media", {})
-                tracks = media.get("tracks", [])
-                duration = float(media.get("duration", 0.0))
-            except Exception as e:
-                print(f"[Errore] Impossibile recuperare metadati da ABS per riprocessare: {e}")
-                return None
-                
-            # 5. Extract and process audio window
-            audio_file_path = None
-            try:
-                audio_file_path = self.audio_mgr.extract_audio(
-                    bookmark_id=library_item_id,
-                    bookmark_time=current_time,
-                    pre_seconds=new_pre,
-                    post_seconds=new_post,
-                    tracks=tracks,
-                    total_duration=duration
-                )
-                
-                # 6. Re-transcribe audio
-                print(f"Rieseguo trascrizione Whisper per {audio_file_path.name}...")
-                transcript = self.stt_mgr.transcribe_audio(audio_file_path, self.config.language)
-                
-                # 7. Re-extract quote using LLM
-                quote_data = {"quote": None, "confidence": "low", "reasoning": "La trascrizione è vuota."}
-                if transcript.strip():
-                    item_metadata = media.get("metadata", {})
-                    book_title = item_metadata.get("title", "Titolo Sconosciuto")
-                    book_author = item_metadata.get("authorName", "Autore Sconosciuto")
-                    
-                    print(f"Rieseguo estrazione citazione LLM con {self.config.openrouter_llm_model}...")
-                    quote_data = self.llm_mgr.extract_verbatim_quote(
-                        transcript=transcript,
-                        book_title=book_title,
-                        author=book_author,
-                        bookmark_title=current_title
-                    )
-                    
-                # 8. Overwrite in StoreManager
-                success = self.store_mgr.overwrite_quote_data(
-                    library_item_id=library_item_id,
-                    created_at=created_at,
-                    transcript=transcript,
-                    quote_data=quote_data,
-                    pre_seconds=new_pre,
-                    post_seconds=new_post
-                )
-                
-                if not success:
-                    print(f"[Errore] Sovrascrittura nello store fallita.")
-                    return None
-                    
-                # 9. Update state in StateManager
-                dummy_bookmark = {
-                    "libraryItemId": library_item_id,
-                    "time": current_time,
-                    "title": current_title,
-                    "createdAt": created_at
-                }
-                self.state_mgr.mark_processed(
-                    bookmark=dummy_bookmark,
-                    status="ok",
-                    pre_seconds=new_pre,
-                    post_seconds=new_post
-                )
-                self.state_mgr.save_state()
-                
-                print(f"[Completato] Citazione rielaborata con successo.")
-                
-                # Return updated representation
-                return self.store_mgr.get_single_quote(library_item_id, created_at)
-                
-            finally:
-                # 10. Clean up audio resource
-                if audio_file_path and audio_file_path.exists():
-                    try:
-                        Path(audio_file_path).unlink()
-                    except OSError:
-                        pass
+            return self.quote_reprocessor.reprocess_single_quote_with_expanded_audio(library_item_id, created_at)
+
+    def re_extract_quote_llm(self, library_item_id: str, created_at: int) -> Dict[str, Any] | None:
+        """Re-extracts quote using the existing transcript and current active LLM prompt/model."""
+        with self.poll_lock:
+            return self.quote_reprocessor.re_extract_quote_llm(library_item_id, created_at)
 
     def _poll_youtube_sheet(self) -> None:
         """Reads pending YouTube links from Google Sheet and processes them."""

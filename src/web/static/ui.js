@@ -211,6 +211,9 @@ export class QuotesUiManager {
             <button class="btn btn-primary" onclick="window.saveQuoteUpdate('${quote.libraryItemId}', ${quote.createdAt})">
               💾 Salva
             </button>
+            <button class="btn btn-secondary btn-reprompt" id="btn-reprompt-${quote.libraryItemId}-${quote.createdAt}" onclick="window.reExtractQuoteLlm('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Invia nuovamente la trascrizione e il prompt salvato all'LLM">
+              ✨ Riprova LLM
+            </button>
           </div>
           
           <button class="btn btn-danger" onclick="window.confirmDeleteQuote('${quote.libraryItemId}', ${quote.createdAt})">
@@ -218,6 +221,8 @@ export class QuotesUiManager {
           </button>
         </div>
         
+        <div id="reprompt-banner-${quote.libraryItemId}-${quote.createdAt}" class="reprompt-status-banner" style="display: none;"></div>
+
         <div class="details-grid" style="margin-top: 1.25rem;">
           <div class="detail-block">
             <h4>Trascrizione Originale</h4>
@@ -225,7 +230,7 @@ export class QuotesUiManager {
           </div>
           <div class="detail-block">
             <h4>Ragionamento LLM</h4>
-            <p>${this.escapeHtml(quote.quote_reasoning || 'Nessuna motivazione fornita.')}</p>
+            <p id="reasoning-val-${quote.libraryItemId}-${quote.createdAt}">${this.escapeHtml(quote.quote_reasoning || 'Nessuna motivazione fornita.')}</p>
           </div>
         </div>
       </div>
@@ -279,6 +284,9 @@ export class QuotesUiManager {
             <button class="btn btn-primary" onclick="window.saveQuoteUpdate('${quote.libraryItemId}', ${quote.createdAt})">
               💾 Salva
             </button>
+            <button class="btn btn-secondary btn-reprompt" id="btn-reprompt-${quote.libraryItemId}-${quote.createdAt}" onclick="window.reExtractQuoteLlm('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Invia nuovamente la trascrizione e il prompt salvato all'LLM">
+              ✨ Riprova LLM
+            </button>
           </div>
           
           <button class="btn btn-danger" onclick="window.confirmDeleteQuote('${quote.libraryItemId}', ${quote.createdAt})">
@@ -286,6 +294,8 @@ export class QuotesUiManager {
           </button>
         </div>
         
+        <div id="reprompt-banner-${quote.libraryItemId}-${quote.createdAt}" class="reprompt-status-banner" style="display: none;"></div>
+
         <div class="details-grid" style="margin-top: 1.25rem;">
           <div class="detail-block">
             <h4>Trascrizione Originale</h4>
@@ -293,7 +303,7 @@ export class QuotesUiManager {
           </div>
           <div class="detail-block">
             <h4>Ragionamento LLM</h4>
-            <p>${this.escapeHtml(quote.quote_reasoning || 'Nessuna motivazione fornita.')}</p>
+            <p id="reasoning-val-${quote.libraryItemId}-${quote.createdAt}">${this.escapeHtml(quote.quote_reasoning || 'Nessuna motivazione fornita.')}</p>
           </div>
         </div>
         <div class="details-footer">

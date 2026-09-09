@@ -84,4 +84,22 @@ export class QuotesApiManager {
     }
     return await response.json();
   }
+
+  /**
+   * Re-runs only the LLM extraction for an existing quote using the current active prompt.
+   * @param {string} libraryItemId 
+   * @param {number} createdAt 
+   */
+  static async reExtractQuoteLlm(libraryItemId, createdAt) {
+    const response = await fetch('/api/quotes/re-extract-llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ libraryItemId, createdAt })
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || "Errore durante la ri-estrazione con LLM.");
+    }
+    return await response.json();
+  }
 }
