@@ -17,6 +17,8 @@ Tutti i cambiamenti significativi a questo progetto saranno documentati in quest
   - Badge di stato **`✓ Readwise`** visibile direttamente sulle schede delle citazioni sincronizzate.
   - Pulsante di sincronizzazione singola integrato nella visualizzazione di verifica/modifica della card.
   - Modulo frontend `ReadwiseSyncManager` (`src/web/static/readwise_sync_manager.js`) per isolamento e manutenibilità.
+  - Cache-busting degli asset statici aggiornato a `v=3.6.0` per garantire l'immediata ricezione delle novità JavaScript da parte dei browser.
+
 
 ## [3.5.0] - 2026-09-10
 

@@ -1,4 +1,4 @@
-import { QuotesApiManager } from './api.js?v=2.4.0';
+import { QuotesApiManager } from './api.js?v=3.6.0';
 
 /**
  * ReadwiseSyncManager - Coordinates Readwise synchronization logic and visual feedback.

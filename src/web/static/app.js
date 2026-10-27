@@ -2,12 +2,12 @@
  * AudiobookNotes Dashboard - AppCoordinator
  * Coordinates state, active tab, filtering, editing, and exports.
  */
-import { QuotesApiManager } from './api.js?v=2.4.0';
-import { QuotesUiManager } from './ui.js?v=2.4.0';
-import { ExportManager } from './export_manager.js?v=2.4.0';
-import { FilterManager } from './filter_manager.js?v=2.4.0';
-import { ReprocessManager } from './reprocess_manager.js?v=2.4.0';
-import { ReadwiseSyncManager } from './readwise_sync_manager.js?v=2.4.0';
+import { QuotesApiManager } from './api.js?v=3.6.0';
+import { QuotesUiManager } from './ui.js?v=3.6.0';
+import { ExportManager } from './export_manager.js?v=3.6.0';
+import { FilterManager } from './filter_manager.js?v=3.6.0';
+import { ReprocessManager } from './reprocess_manager.js?v=3.6.0';
+import { ReadwiseSyncManager } from './readwise_sync_manager.js?v=3.6.0';
 
 // State
 let quotesState = [];

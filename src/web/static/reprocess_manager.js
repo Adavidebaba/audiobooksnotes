@@ -1,8 +1,8 @@
 /**
  * ReprocessManager - Handles audio re-extraction and instant LLM re-prompting for quotes.
  */
-import { QuotesApiManager } from './api.js?v=2.4.0';
-import { QuotesUiManager } from './ui.js?v=2.4.0';
+import { QuotesApiManager } from './api.js?v=3.6.0';
+import { QuotesUiManager } from './ui.js?v=3.6.0';
 
 export class ReprocessManager {
   /**
