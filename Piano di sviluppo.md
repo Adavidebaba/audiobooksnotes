@@ -242,3 +242,10 @@ Se uno di questi step fallisce o ritorna shape diverse dalle attese, aggiornare 
 - **Update del titolo del bookmark**: cambi al solo `title` non triggerano re-process (per design — la chiave è id+time).
 - **Webhook ABS**: ABS al momento (versioni recenti) supporta WebSocket per eventi; sostituire il polling con WS è un upgrade futuro che ridurrebbe latenza e carico.
 - **Lingua**: hardcoded `it` nella config. L'app gestisce solo italiano in questa versione; per multi-lingua leggere `media.metadata.language` se presente.
+
+## Integrazione Readwise (Implementata v3.6.0)
+
+- **API Highlights v2**: Integrazione con endpoint `POST https://readwise.io/api/v2/highlights/` per inviare citazioni sia da audiolibri che da video YouTube.
+- **Deduplicazione & Persistenza**: I record nei file JSON (`data/books/*.json`) tengono traccia di `readwise_synced` e `readwise_synced_at`.
+- **Invio Ibrido**: Sincronizzazione automatica all'estrazione + pulsante batch nella Web UI per sincronizzare l'archivio pregresso a blocchi di 100 citazioni.
+

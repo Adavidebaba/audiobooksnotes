@@ -16,6 +16,7 @@ from src.prompt_manager import PromptManager
 from src.llm import LlmManager
 from src.store import StoreManager
 from src.quote_reprocessor import QuoteReprocessor
+from src.readwise_manager import ReadwiseManager
 from src.web.server import WebServer
 from src.youtube_sheet_client import YouTubeSheetClient
 from src.youtube_transcript import YouTubeTranscriptManager
@@ -33,6 +34,7 @@ class OrchestrationCoordinator:
         self.prompt_mgr = PromptManager(config.prompts_file_path, default_model=config.openrouter_llm_model)
         self.llm_mgr = LlmManager(config.openrouter_api_key, config.openrouter_llm_model, prompt_manager=self.prompt_mgr)
         self.store_mgr = StoreManager(config.books_dir)
+        self.readwise_mgr = ReadwiseManager(config.readwise_api_token)
         self.quote_reprocessor = QuoteReprocessor(
             store_mgr=self.store_mgr,
             llm_mgr=self.llm_mgr,
@@ -163,12 +165,12 @@ class OrchestrationCoordinator:
             transcript = self.stt_mgr.transcribe_audio(audio_file_path, self.config.language)
             
             # 4. Extract quote using LLM
+            item_metadata = media.get("metadata", {})
+            book_title = item_metadata.get("title", "Titolo Sconosciuto")
+            book_author = item_metadata.get("authorName", "Autore Sconosciuto")
+
             quote_data = {"quote": None, "confidence": "low", "reasoning": "La trascrizione è vuota."}
             if transcript.strip():
-                item_metadata = media.get("metadata", {})
-                book_title = item_metadata.get("title", "Titolo Sconosciuto")
-                book_author = item_metadata.get("authorName", "Autore Sconosciuto")
-                
                 print(f"Estrazione citazione con {self.config.openrouter_llm_model}...")
                 quote_data = self.llm_mgr.extract_verbatim_quote(
                     transcript=transcript,
@@ -187,6 +189,24 @@ class OrchestrationCoordinator:
                 pre_seconds=self.config.pre_seconds,
                 post_seconds=self.config.post_seconds
             )
+
+            # 6. Sync to Readwise if enabled and quote exists
+            if self.readwise_mgr.is_configured and quote_data.get("quote"):
+                quote_payload = {
+                    "libraryItemId": library_item_id,
+                    "bookTitle": book_title,
+                    "bookAuthor": book_author,
+                    "source_type": "audiobook",
+                    "time": bm_time,
+                    "title": bm_title,
+                    "createdAt": bookmark.get("createdAt", 0),
+                    "transcript": transcript,
+                    "quote": quote_data.get("quote"),
+                    "quote_reasoning": quote_data.get("reasoning", "")
+                }
+                if self.readwise_mgr.sync_single_quote(quote_payload):
+                    self.store_mgr.mark_quote_synced_to_readwise(library_item_id, bookmark.get("createdAt", 0))
+                    print(f"[Readwise] Citazione sincronizzata per '{book_title}'.")
         finally:
             # 6. Ensure temporary audio file cleanup
             if audio_file_path and audio_file_path.exists():
@@ -217,6 +237,44 @@ class OrchestrationCoordinator:
         """Re-extracts quote using the existing transcript and current active LLM prompt/model."""
         with self.poll_lock:
             return self.quote_reprocessor.re_extract_quote_llm(library_item_id, created_at)
+
+    def sync_all_quotes_to_readwise(self) -> Dict[str, Any]:
+        """Syncs all unsynced quotes to Readwise."""
+        if not self.readwise_mgr.is_configured:
+            return {"status": "error", "message": "Readwise API Token non configurato nel file .env"}
+
+        all_quotes = self.store_mgr.get_all_quotes()
+        unsynced = [q for q in all_quotes if not q.get("readwise_synced") and (q.get("quote") or q.get("transcript"))]
+        
+        if not unsynced:
+            return {"status": "success", "message": "Tutte le citazioni sono già sincronizzate con Readwise.", "synced_count": 0}
+
+        result = self.readwise_mgr.sync_quotes_batch(unsynced)
+        if result.get("success"):
+            synced_list = result.get("synced_quotes", [])
+            for q in synced_list:
+                ident = q.get("createdAt") or q.get("time")
+                self.store_mgr.mark_quote_synced_to_readwise(q.get("libraryItemId"), ident)
+            return {
+                "status": "success",
+                "message": f"Sincronizzate {len(synced_list)} citazioni con Readwise.",
+                "synced_count": len(synced_list)
+            }
+        return {"status": "error", "message": f"Errore durante l'invio a Readwise: {result.get('error')}"}
+
+    def sync_single_quote_to_readwise(self, library_item_id: str, created_at: int) -> Dict[str, Any]:
+        """Syncs a single specific quote to Readwise."""
+        if not self.readwise_mgr.is_configured:
+            return {"status": "error", "message": "Readwise API Token non configurato nel file .env"}
+
+        quote = self.store_mgr.get_single_quote(library_item_id, created_at)
+        if not quote:
+            return {"status": "error", "message": "Citazione non trovata"}
+
+        if self.readwise_mgr.sync_single_quote(quote):
+            self.store_mgr.mark_quote_synced_to_readwise(library_item_id, created_at)
+            return {"status": "success", "message": "Citazione sincronizzata con successo su Readwise."}
+        return {"status": "error", "message": "Errore durante l'invio della citazione a Readwise."}
 
     def _poll_youtube_sheet(self) -> None:
         """Reads pending YouTube links from Google Sheet and processes them."""
@@ -333,6 +391,25 @@ class OrchestrationCoordinator:
             post_seconds=self.config.youtube_post_seconds
         )
 
+        # 5. Sync to Readwise if enabled and quote exists
+        if self.readwise_mgr.is_configured and quote_data.get("quote"):
+            yt_quote_payload = {
+                "libraryItemId": f"yt_{video_id}",
+                "bookTitle": video_title,
+                "bookAuthor": channel_name,
+                "source_type": "youtube",
+                "time": float(timestamp),
+                "title": "",
+                "video_url": video_url,
+                "transcript": transcript or "",
+                "quote": quote_data.get("quote"),
+                "quote_reasoning": quote_data.get("reasoning", "")
+            }
+            if self.readwise_mgr.sync_single_quote(yt_quote_payload):
+                self.store_mgr.mark_quote_synced_to_readwise(f"yt_{video_id}", float(timestamp))
+                print(f"[Readwise] Citazione YouTube sincronizzata per '{video_title}'.")
+
+
 def main() -> None:
     """Entry point of the application."""
     print("=== Inizializzazione AudiobookNotes ===")
@@ -350,6 +427,10 @@ def main() -> None:
         print(f"YouTube integration: ENABLED (Sheet ID: {config.youtube_sheet_id[:8]}...)")
     else:
         print("YouTube integration: DISABLED (no API key or Sheet ID configured)")
+    if config.readwise_enabled:
+        print("Readwise integration: ENABLED")
+    else:
+        print("Readwise integration: DISABLED (READWISE_API_TOKEN not set)")
     
     # Avvio del ciclo di polling in un thread in background (daemon)
     def poll_worker() -> None:

@@ -145,6 +145,28 @@ class WebServer:
             reset_data = self.prompt_mgr.reset_to_defaults(target_key=request.target_key)
             return {"status": "success", "message": "Prompt ripristinati ai valori di fabbrica.", "prompts": reset_data}
 
+        @self.app.get("/api/readwise/status")
+        def get_readwise_status() -> Dict[str, Any]:
+            """API endpoint to check if Readwise token is configured and valid."""
+            configured = self.coordinator.readwise_mgr.is_configured
+            valid = False
+            if configured:
+                valid = self.coordinator.readwise_mgr.verify_token()
+            return {"configured": configured, "valid": valid}
+
+        @self.app.post("/api/readwise/sync")
+        def sync_all_readwise() -> Dict[str, Any]:
+            """API endpoint to trigger batch sync of all unsynced quotes to Readwise."""
+            return self.coordinator.sync_all_quotes_to_readwise()
+
+        @self.app.post("/api/readwise/sync-single")
+        def sync_single_readwise(request: QuoteReprocessRequest) -> Dict[str, Any]:
+            """API endpoint to sync a single quote to Readwise."""
+            return self.coordinator.sync_single_quote_to_readwise(
+                library_item_id=request.libraryItemId,
+                created_at=request.createdAt
+            )
+
         # Serve frontend static assets (HTML, CSS, JS)
         static_dir = Path(__file__).parent / "static"
         static_dir.mkdir(parents=True, exist_ok=True)

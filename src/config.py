@@ -50,6 +50,10 @@ class ConfigManager:
         self.youtube_post_seconds = int(os.getenv("YOUTUBE_POST_SECONDS", "60"))
         self.youtube_enabled = bool(self.google_sheets_api_key and self.youtube_sheet_id)
 
+        # Readwise Integration (optional)
+        self.readwise_api_token = os.getenv("READWISE_API_TOKEN", "").strip()
+        self.readwise_enabled = bool(self.readwise_api_token)
+
         # Create directories if they do not exist
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.books_dir = self.data_dir / "books"

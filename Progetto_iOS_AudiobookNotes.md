@@ -470,9 +470,10 @@ graph LR
 
 ## 9. Integrazioni Strategiche
 
-### 9.1 — Readwise (Già Supportata)
-- Esportazione CSV compatibile al 100%
-- **Upgrade iOS**: integrazione diretta via Readwise API per sync automatico
+### 9.1 — Readwise (Completamente Supportata)
+- Esportazione CSV compatibile al 100% (RFC 4180)
+- **Integrazione Diretta Backend (Completata v3.6.0)**: Sincronizzazione automatica all'estrazione e on-demand in batch via Readwise Highlights API v2 (`READWISE_API_TOKEN`) sia per audiolibri che per video YouTube.
+- **Porting iOS**: Implementazione del client `ReadwiseManager` nativo Swift con chiamate REST a `https://readwise.io/api/v2/highlights/`.
 
 ### 9.2 — Obsidian / Notion
 - Esportazione in Markdown con frontmatter YAML
@@ -571,7 +572,7 @@ graph LR
 ### Fase 4 — Social & Growth (4-6 settimane)
 - [ ] Card citazione condivisibile su social
 - [ ] Profilo pubblico opt-in
-- [ ] Integrazione diretta Readwise API
+- [x] Integrazione diretta Readwise API (completata lato backend Python/Docker v3.6.0; da connettere nell'app iOS)
 - [ ] Integrazione Obsidian (URL scheme)
 - [ ] Onboarding video tutorial
 

@@ -118,7 +118,9 @@ class StoreManager:
             "transcript": transcript,
             "quote": quote_data.get("quote"),
             "quote_confidence": quote_data.get("confidence", "low"),
-            "quote_reasoning": quote_data.get("reasoning", "")
+            "quote_reasoning": quote_data.get("reasoning", ""),
+            "readwise_synced": bookmark.get("readwise_synced", False),
+            "readwise_synced_at": bookmark.get("readwise_synced_at", None)
         }
         
         # Check if bookmark already exists
@@ -178,7 +180,9 @@ class StoreManager:
                         "quote_language": bookmark.get("quote_language", ""),
                         "quote_confidence": bookmark.get("quote_confidence", "low"),
                         "quote_reasoning": bookmark.get("quote_reasoning", ""),
-                        "video_url": bookmark.get("video_url", "")
+                        "video_url": bookmark.get("video_url", ""),
+                        "readwise_synced": bookmark.get("readwise_synced", False),
+                        "readwise_synced_at": bookmark.get("readwise_synced_at", None)
                     }
                     all_quotes.append(quote_entry)
             except (json.JSONDecodeError, IOError) as e:
@@ -364,7 +368,9 @@ class StoreManager:
             "quote_language": quote_data.get("quote_language", ""),
             "quote_confidence": quote_data.get("confidence", "low"),
             "quote_reasoning": quote_data.get("reasoning", ""),
-            "video_url": video_url
+            "video_url": video_url,
+            "readwise_synced": False,
+            "readwise_synced_at": None
         }
 
         # Avoid duplicates by timestamp
@@ -383,6 +389,37 @@ class StoreManager:
 
         video_data["updated_at"] = datetime.utcnow().isoformat() + "Z"
         self._save_book_data_atomic(file_path, video_data)
+
+    def mark_quote_synced_to_readwise(self, library_item_id: str, identifier: Any) -> bool:
+        """Marks a quote as synced to Readwise by matching createdAt timestamp or audio time."""
+        file_path = self._find_book_file(library_item_id)
+        if not file_path:
+            return False
+            
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return False
+            
+        updated = False
+        for bm in data.get("bookmarks", []):
+            matches_created = identifier and bm.get("createdAt") == identifier
+            matches_time = False
+            if isinstance(identifier, (int, float)):
+                matches_time = abs(bm.get("time", -999.0) - float(identifier)) < 0.5
+            if matches_created or matches_time:
+                bm["readwise_synced"] = True
+                bm["readwise_synced_at"] = datetime.utcnow().isoformat() + "Z"
+                updated = True
+                break
+                
+        if updated:
+            data["updated_at"] = datetime.utcnow().isoformat() + "Z"
+            self._save_book_data_atomic(file_path, data)
+            return True
+            
+        return False
 
     def clear_all_books(self) -> None:
         """Deletes all JSON files in the books directory."""

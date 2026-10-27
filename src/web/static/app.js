@@ -7,6 +7,7 @@ import { QuotesUiManager } from './ui.js?v=2.4.0';
 import { ExportManager } from './export_manager.js?v=2.4.0';
 import { FilterManager } from './filter_manager.js?v=2.4.0';
 import { ReprocessManager } from './reprocess_manager.js?v=2.4.0';
+import { ReadwiseSyncManager } from './readwise_sync_manager.js?v=2.4.0';
 
 // State
 let quotesState = [];
@@ -46,6 +47,13 @@ async function initApp() {
 function bindEventListeners() {
   if (btnManualPoll) {
     btnManualPoll.addEventListener('click', handleManualPoll);
+  }
+
+  const btnSyncReadwise = document.getElementById('btn-sync-readwise');
+  if (btnSyncReadwise) {
+    btnSyncReadwise.addEventListener('click', () => {
+      ReadwiseSyncManager.handleBatchSync(btnSyncReadwise, showToast, loadQuotesFromServer);
+    });
   }
 
   if (tabBtnAudiobooks) {
@@ -421,6 +429,10 @@ window.reExtractQuoteLlm = async function(libraryItemId, createdAt, btn) {
     libraryItemId, createdAt, btn, quotesState
   );
   showToast(result.message, result.success ? 'success' : 'danger');
+};
+
+window.syncSingleQuoteToReadwise = function(libraryItemId, createdAt, btn) {
+  ReadwiseSyncManager.handleSingleQuoteSync(libraryItemId, createdAt, btn, quotesState, showToast);
 };
 
 // Start

@@ -42,6 +42,7 @@ L'applicazione legge le sue impostazioni dal file nascosto chiamato `.env` situa
 * `OPENROUTER_STT_MODEL`: Il modello per la trascrizione vocale (impostato su `mistralai/voxtral-mini-transcribe`).
 * `POLL_INTERVAL_SECONDS`: Intervallo in secondi tra ogni controllo su Audiobookshelf (es. `60`).
 * `PRE_SECONDS` / `POST_SECONDS`: Finestra audio da estrarre prima e dopo la marcatura del bookmark (es. `20`).
+* `READWISE_API_TOKEN`: Il tuo token personale di Readwise (opzionale, per la sincronizzazione diretta automatica e manuale con Readwise).
 
 ---
 
@@ -131,3 +132,10 @@ La funzionalità è **completamente opzionale**: se queste variabili non sono co
   * **System Prompt Personalizzabili**: Modifica le istruzioni per l'estrazione da Audiolibri, da timestamp YouTube o la sintesi super-cut per l'intero video.
   * **Salvataggio e Ripristino**: I prompt sono salvati in modo persistente in `data/prompts.json` e possono essere ripristinati ai valori originali di fabbrica in qualsiasi momento.
   * **Pulsante "✨ Riprova LLM"**: In fase di verifica di qualsiasi citazione puoi cliccare su *"✨ Riprova LLM"* per testare subito l'effetto dei prompt aggiornati sulla trascrizione esistente in tempo reale, senza attendere né riscaricare l'audio.
+
+### 8. Integrazione Diretta con Readwise 📚
+Se possiedi un account **Readwise**, l'applicazione può inviare automaticamente tutte le tue citazioni (sia da audiolibri che da YouTube) direttamente al tuo profilo Readwise:
+* **Token Readwise**: Ottieni il tuo token personale su [readwise.io/access_token](https://readwise.io/access_token) e inseriscilo in `.env` come `READWISE_API_TOKEN=...`.
+* **Sync Automatico**: Ogni nuova citazione estratta viene sincronizzata immediatamente in background su Readwise.
+* **Pulsante "📚 Sync Readwise"**: Nella dashboard web, clicca sul pulsante in alto per sincronizzare in blocco tutte le citazioni pregresse non ancora caricate.
+* **Badge e Sync Singolo**: Sulle schede delle citazioni appare il badge `✓ Readwise`, ed è possibile risincronizzare la singola citazione direttamente dalla vista di verifica.

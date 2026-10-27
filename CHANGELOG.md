@@ -2,6 +2,22 @@
 
 Tutti i cambiamenti significativi a questo progetto saranno documentati in questo file.
 
+## [3.6.0] - 2026-10-27
+
+### Aggiunto
+- **Integrazione Diretta Readwise API (v2)**: Supporto nativo per l'invio delle citazioni alla piattaforma Readwise tramite Highlights API ufficiale (`READWISE_API_TOKEN`).
+- **Sincronizzazione Automatica all'Estrazione**: Le nuove citazioni estratte da Audiobookshelf e da YouTube vengono inviate in tempo reale a Readwise e tracciate come sincronizzate (`readwise_synced` e `readwise_synced_at` nel database JSON).
+- **Nuovo Modulo `ReadwiseManager` (`src/readwise_manager.py`)**: Gestore dedicato con verifica del token, formattazione dati (categoria `books` / `articles`, link sorgente, note di contesto) e invio in batch a blocchi di 100 citazioni.
+- **Endpoint API REST per Readwise**:
+  - `GET /api/readwise/status`: verifica validità e connessione del token Readwise.
+  - `POST /api/readwise/sync`: sincronizzazione massiva di tutte le citazioni pregresse non ancora inviate.
+  - `POST /api/readwise/sync-single`: invio o aggiornamento mirato di una singola citazione.
+- **Interfaccia Web & Feedback Visivo**:
+  - Pulsante in testata **"📚 Sync Readwise"** per sincronizzare l'intero archivio con un clic.
+  - Badge di stato **`✓ Readwise`** visibile direttamente sulle schede delle citazioni sincronizzate.
+  - Pulsante di sincronizzazione singola integrato nella visualizzazione di verifica/modifica della card.
+  - Modulo frontend `ReadwiseSyncManager` (`src/web/static/readwise_sync_manager.js`) per isolamento e manutenibilità.
+
 ## [3.5.0] - 2026-09-10
 
 ### Aggiunto

@@ -185,6 +185,7 @@ export class QuotesUiManager {
             ${timeLabel}
           </a>
           <span class="badge ${badgeClass}" id="badge-val-${quote.libraryItemId}-${quote.createdAt}">${quote.quote_confidence || 'low'}</span>
+          <span class="badge badge-readwise" id="readwise-badge-${quote.libraryItemId}-${quote.createdAt}" style="${quote.readwise_synced ? '' : 'display: none;'}" title="Sincronizzata con Readwise">✓ Readwise</span>
           <button class="btn-edit-toggle" onclick="window.toggleEditMode('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Verifica o modifica la citazione">
             ✏️ Verifica
           </button>
@@ -213,6 +214,9 @@ export class QuotesUiManager {
             </button>
             <button class="btn btn-secondary btn-reprompt" id="btn-reprompt-${quote.libraryItemId}-${quote.createdAt}" onclick="window.reExtractQuoteLlm('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Invia nuovamente la trascrizione e il prompt salvato all'LLM">
               ✨ Riprova LLM
+            </button>
+            <button class="btn btn-secondary btn-readwise-sync" onclick="window.syncSingleQuoteToReadwise('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Invia o aggiorna questa citazione su Readwise">
+              📚 Sync Readwise
             </button>
           </div>
           
@@ -258,6 +262,7 @@ export class QuotesUiManager {
         <div class="card-position">
           <span class="position-marker">⏱️ ${timeLabel}</span>
           <span class="badge ${badgeClass}" id="badge-val-${quote.libraryItemId}-${quote.createdAt}">${quote.quote_confidence}</span>
+          <span class="badge badge-readwise" id="readwise-badge-${quote.libraryItemId}-${quote.createdAt}" style="${quote.readwise_synced ? '' : 'display: none;'}" title="Sincronizzata con Readwise">✓ Readwise</span>
         </div>
         <button class="btn-edit-toggle" onclick="window.toggleEditMode('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Verifica o modifica la citazione">
           ✏️ Verifica
@@ -286,6 +291,9 @@ export class QuotesUiManager {
             </button>
             <button class="btn btn-secondary btn-reprompt" id="btn-reprompt-${quote.libraryItemId}-${quote.createdAt}" onclick="window.reExtractQuoteLlm('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Invia nuovamente la trascrizione e il prompt salvato all'LLM">
               ✨ Riprova LLM
+            </button>
+            <button class="btn btn-secondary btn-readwise-sync" onclick="window.syncSingleQuoteToReadwise('${quote.libraryItemId}', ${quote.createdAt}, this)" title="Invia o aggiorna questa citazione su Readwise">
+              📚 Sync Readwise
             </button>
           </div>
           

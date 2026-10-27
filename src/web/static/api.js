@@ -102,4 +102,41 @@ export class QuotesApiManager {
     }
     return await response.json();
   }
+
+  /**
+   * Checks Readwise configuration and authentication status.
+   * @returns {Promise<{configured: boolean, valid: boolean}>}
+   */
+  static async getReadwiseStatus() {
+    const response = await fetch('/api/readwise/status');
+    if (!response.ok) throw new Error('Impossibile verificare lo stato di Readwise.');
+    return await response.json();
+  }
+
+  /**
+   * Triggers a batch synchronization of all unsynced quotes to Readwise.
+   * @returns {Promise<Object>}
+   */
+  static async syncAllReadwise() {
+    const response = await fetch('/api/readwise/sync', { method: 'POST' });
+    if (!response.ok) throw new Error('Errore durante la sincronizzazione con Readwise.');
+    return await response.json();
+  }
+
+  /**
+   * Syncs a single quote to Readwise.
+   * @param {string} libraryItemId
+   * @param {number} createdAt
+   * @returns {Promise<Object>}
+   */
+  static async syncSingleReadwise(libraryItemId, createdAt) {
+    const response = await fetch('/api/readwise/sync-single', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ libraryItemId, createdAt })
+    });
+    if (!response.ok) throw new Error('Errore durante la sincronizzazione su Readwise.');
+    return await response.json();
+  }
 }
+
